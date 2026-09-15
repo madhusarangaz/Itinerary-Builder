@@ -1,0 +1,740 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-crm: "Outfit", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-satoshi: "Satoshi", "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-title: "Gilda Display", "Times New Roman", serif;
+  --color-canvas: #f2f2f2;
+  --color-ink: #171718;
+  --color-paper: #f6f1e8;
+  --color-gold: #c4a574;
+  --color-navy: #1c2a3a;
+  --shadow-input:
+    0px 2px 3px -1px rgba(0, 0, 0, 0.1),
+    0px 1px 0px 0px rgba(25, 28, 33, 0.02),
+    0px 0px 0px 1px rgba(25, 28, 33, 0.08);
+}
+
+html {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+  background: #f2f2f2;
+  color: #171718;
+  font-family: var(--font-crm);
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark,
+html.dark body,
+html.dark #root {
+  background: #1f1f20;
+  color: #ebebeb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.itinerary-doc {
+  --it-navy: #1c2a3a;
+  --it-gold: #c4a574;
+  --it-paper: #ffffff;
+  --it-sand: #f7f7f6;
+  --it-muted: #5c564c;
+  --it-line: rgb(28 42 58 / 0.1);
+  container-type: inline-size;
+  container-name: itinerary;
+  font-family: var(--font-satoshi);
+  background: var(--it-paper);
+  color: var(--it-navy);
+  overflow-x: hidden;
+}
+
+.itinerary-doc img {
+  display: block;
+  max-width: 100%;
+}
+
+.itinerary-doc.is-editable .itinerary-edit-hotspot {
+  cursor: pointer;
+}
+
+.itinerary-doc.is-editable .itinerary-edit-hotspot:hover {
+  outline: 1px solid var(--it-gold);
+  outline-offset: -1px;
+}
+
+.itinerary-title {
+  font-family: var(--font-title);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.itinerary-wrap {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.dest-profile-pad {
+  padding-left: 1.75rem;
+  padding-right: 1.75rem;
+}
+
+.itinerary-kicker {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--it-gold);
+}
+
+.itinerary-h1 {
+  margin: 0.4rem 0 0;
+  font-size: 2.05rem;
+  line-height: 1.04;
+}
+
+.itinerary-h2 {
+  margin: 0.35rem 0 0;
+  font-size: 1.7rem;
+  line-height: 1.1;
+}
+
+.itinerary-h3 {
+  margin: 0.25rem 0 0;
+  font-size: 1.7rem;
+  line-height: 1.12;
+}
+
+.itinerary-section {
+  padding-block: 2.4rem;
+}
+
+.itinerary-section.is-sand {
+  background: var(--it-sand);
+}
+
+.itinerary-btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.75rem 1.45rem;
+  border-radius: 0;
+  background: var(--it-gold);
+  color: var(--it-navy);
+  font-family: var(--font-satoshi);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.itinerary-btn-gold:hover {
+  filter: brightness(1.05);
+}
+
+.itinerary-day {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.itinerary-day-media {
+  overflow: hidden;
+  border-radius: 0;
+  aspect-ratio: 5 / 4;
+  background: #f0f0ee;
+}
+
+.itinerary-day-media img,
+.itinerary-hotel-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.itinerary-activities {
+  margin: 1.15rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.itinerary-glance {
+  margin: 0.95rem 0 0;
+  padding: 0.85rem 0 0;
+  border-top: 1px solid var(--it-line);
+}
+
+.itinerary-glance-kicker {
+  margin: 0 0 0.55rem;
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--it-gold);
+}
+
+.itinerary-glance-list {
+  margin: 0;
+}
+
+.itinerary-glance-row {
+  display: grid;
+  grid-template-columns: 6.4rem minmax(0, 1fr);
+  gap: 0.55rem 0.75rem;
+  padding: 0.22rem 0;
+  align-items: start;
+}
+
+.itinerary-glance-row dt {
+  margin: 0;
+  padding-top: 0.18rem;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--it-gold);
+}
+
+.itinerary-glance-row dd {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--it-navy);
+}
+
+.itinerary-activity-time {
+  display: inline;
+  margin-right: 0.45rem;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--it-gold);
+}
+
+.itinerary-activity-status {
+  margin-left: 0.45rem;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--it-muted);
+}
+
+.itinerary-activities > li {
+  position: relative;
+  padding: 0.45rem 0 0.45rem 1.05rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  border-left: 1px solid var(--it-line);
+}
+
+.itinerary-activities > li::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: 0.85rem;
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--it-gold);
+}
+
+.itinerary-activities ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1rem;
+  color: var(--it-muted);
+}
+
+.itinerary-highlights-marquee {
+  --hl-n: 6;
+  overflow: hidden;
+  margin-top: 1.75rem;
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+
+.itinerary-highlights-track {
+  display: flex;
+  width: max-content;
+  animation: itinerary-hl-marquee calc(var(--hl-n) * 8s) linear infinite;
+  will-change: transform;
+}
+
+.itinerary-highlights-set {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.itinerary-highlight-card {
+  flex: 0 0 10.25rem;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--it-line);
+}
+
+.itinerary-highlight-photo {
+  aspect-ratio: 3 / 4;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.itinerary-highlight-caption {
+  padding: 0.75rem 0.75rem 0.85rem;
+}
+
+@keyframes itinerary-hl-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .itinerary-highlights-track {
+    animation: none;
+  }
+
+  .itinerary-highlights-set[aria-hidden='true'] {
+    display: none;
+  }
+
+  .itinerary-highlights-marquee {
+    overflow-x: auto;
+    mask-image: none;
+  }
+}
+
+.itinerary-hotels {
+  display: grid;
+  gap: 1.1rem;
+  margin-top: 1.5rem;
+}
+
+.itinerary-hotel {
+  overflow: hidden;
+  border-radius: 0;
+  background: #fff;
+  border: 1px solid var(--it-line);
+}
+
+.itinerary-hotel-media {
+  aspect-ratio: 16 / 10;
+  background: #f0f0ee;
+}
+
+.itinerary-hotel-body {
+  padding: 1rem 1.05rem 1.15rem;
+}
+
+.itinerary-stars {
+  display: inline-flex;
+  gap: 0.12rem;
+  color: #d6d1c8;
+  letter-spacing: 0.08em;
+}
+
+.itinerary-stars .is-on {
+  color: var(--it-gold);
+}
+
+.itinerary-price {
+  background: var(--it-navy);
+  color: var(--it-paper);
+  text-align: center;
+  padding: 3rem 1.25rem;
+}
+
+.itinerary-price .itinerary-kicker {
+  color: var(--it-gold);
+}
+
+.itinerary-price-amount {
+  margin: 0.45rem 0 0;
+  font-size: 2.6rem;
+  line-height: 1;
+  color: var(--it-paper);
+}
+
+.itinerary-price-rule {
+  width: 3.25rem;
+  height: 1px;
+  margin: 1.1rem auto;
+  background: var(--it-gold);
+}
+
+.itinerary-footer {
+  background: var(--it-navy);
+  color: var(--it-paper);
+  text-align: center;
+  padding: 3rem 1.25rem 4.25rem;
+}
+
+.itinerary-footer-mark {
+  margin: 0;
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--it-paper);
+}
+
+.itinerary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  margin-top: 1rem;
+  font-size: 0.82rem;
+  color: rgb(248 245 239 / 0.82);
+}
+
+.itinerary-hero,
+.itinerary-hero-inner {
+  min-height: 22.5rem;
+}
+
+.itinerary-map-frame {
+  height: 16.25rem;
+  width: 100%;
+}
+
+@container itinerary (min-width: 640px) {
+  .itinerary-h1 {
+    font-size: 2.55rem;
+  }
+
+  .itinerary-h2 {
+    font-size: 2.05rem;
+  }
+
+  .itinerary-h3 {
+    font-size: 2rem;
+  }
+
+  .itinerary-price-amount {
+    font-size: 3.2rem;
+  }
+
+  .itinerary-hero,
+  .itinerary-hero-inner {
+    min-height: 26rem;
+  }
+
+  .itinerary-map-frame {
+    height: 20rem;
+  }
+}
+
+@container itinerary (min-width: 768px) {
+  .itinerary-wrap {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+
+  .itinerary-kicker {
+    font-size: 11px;
+    letter-spacing: 0.28em;
+  }
+
+  .itinerary-h1 {
+    font-size: 3.2rem;
+  }
+
+  .itinerary-h2 {
+    font-size: 2.45rem;
+  }
+
+  .itinerary-h3 {
+    font-size: 2.45rem;
+  }
+
+  .itinerary-section {
+    padding-block: 3.4rem;
+  }
+
+  .dest-profile-pad {
+    padding-left: 2.75rem;
+    padding-right: 2.75rem;
+  }
+
+  .itinerary-highlights-set {
+    gap: 1.15rem;
+    padding-right: 1.15rem;
+  }
+
+  .itinerary-highlight-card {
+    flex-basis: 13.5rem;
+  }
+
+  .itinerary-day {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  .itinerary-day.is-flip .itinerary-day-media {
+    order: 2;
+  }
+
+  .itinerary-day-media {
+    aspect-ratio: 4 / 5;
+    min-height: 360px;
+  }
+
+  .itinerary-price,
+  .itinerary-footer {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+
+  .itinerary-price {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+
+  .itinerary-price-amount {
+    font-size: 3.75rem;
+  }
+
+  .itinerary-footer-mark {
+    font-size: 3.6rem;
+  }
+
+  .itinerary-hero,
+  .itinerary-hero-inner {
+    min-height: 32rem;
+  }
+
+  .itinerary-map-frame {
+    height: 26rem;
+  }
+}
+
+@container itinerary (min-width: 1024px) {
+  .itinerary-wrap {
+    padding-left: 3.5rem;
+    padding-right: 3.5rem;
+  }
+
+  .itinerary-h1 {
+    font-size: 3.75rem;
+  }
+
+  .itinerary-h2 {
+    font-size: 2.75rem;
+  }
+
+  .itinerary-h3 {
+    font-size: 2.85rem;
+  }
+
+  .itinerary-section {
+    padding-block: 4.25rem;
+  }
+
+  .dest-profile-pad {
+    padding-left: 3.5rem;
+    padding-right: 3.5rem;
+  }
+
+  .itinerary-highlight-card {
+    flex-basis: 15rem;
+  }
+
+  .itinerary-day {
+    gap: 3.25rem;
+  }
+
+  .itinerary-day-media {
+    min-height: 440px;
+  }
+
+  .itinerary-hotels {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.4rem;
+  }
+
+  .itinerary-hotel-body {
+    padding: 1.2rem 1.25rem 1.35rem;
+  }
+
+  .itinerary-footer-mark {
+    font-size: 4.6rem;
+  }
+
+  .itinerary-map-frame {
+    height: 33.75rem;
+  }
+}
+
+/* Subtle 20% scrollbars — light & dark */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(0 0 0 / 0.2) transparent;
+}
+
+html.dark * {
+  scrollbar-color: rgb(255 255 255 / 0.2) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(0 0 0 / 0.2);
+  border-radius: 99px;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(0 0 0 / 0.32);
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgb(255 255 255 / 0.32);
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  color-scheme: dark;
+}
+
+html.dark input[type='date'],
+html.dark input[type='number'],
+html.dark input[type='text'],
+html.dark input[type='email'] {
+  color: #f4f4f5;
+}
+
+html.dark select option,
+html.dark select optgroup {
+  background-color: #27272a;
+  color: #f4f4f5;
+}
+
+html.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+.journey-map .leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #efe6d8;
+  font-family: var(--font-satoshi);
+}
+
+.journey-marker {
+  background: transparent;
+  border: none;
+}
+
+.journey-pin {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #1c2a3a;
+  color: #f4eee4;
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid #c4a574;
+  box-shadow: 0 4px 10px rgb(28 42 58 / 0.25);
+  cursor: pointer;
+}
+
+.journey-map .leaflet-control-attribution {
+  font-size: 10px;
+  background: rgb(244 238 228 / 0.88);
+}
+
+.journey-popup {
+  min-width: 8.5rem;
+  padding: 2px 2px 0;
+}
+
+.journey-popup-kicker {
+  margin: 0;
+  font-family: var(--font-satoshi);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #c4a574;
+}
+
+.journey-popup-name {
+  margin: 4px 0 0;
+  font-family: var(--font-title);
+  font-size: 22px;
+  line-height: 1.15;
+  color: #1c2a3a;
+}
+
+.journey-popup-wrap .leaflet-popup-content-wrapper {
+  background: #f4eee4;
+  color: #1c2a3a;
+  border-radius: 0;
+  border: 1px solid rgb(28 42 58 / 0.08);
+  box-shadow: 0 14px 36px rgb(28 42 58 / 0.18);
+}
+
+.journey-popup-wrap .leaflet-popup-content {
+  margin: 12px 16px 10px;
+}
+
+.journey-popup-wrap .leaflet-popup-tip {
+  background: #f4eee4;
+}
+
+.journey-popup-wrap .leaflet-popup-close-button {
+  color: #5c564c !important;
+  top: 4px !important;
+  right: 6px !important;
+}
+
+.journey-map .gm-style-iw-c {
+  background: #f4eee4 !important;
+  border-radius: 0 !important;
+  padding: 10px 14px 8px !important;
+  box-shadow: 0 14px 36px rgb(28 42 58 / 0.18) !important;
+}
+
+.journey-map .gm-style-iw-d {
+  overflow: hidden !important;
+}
+
+.journey-map .gm-style-iw-tc::after {
+  background: #f4eee4 !important;
+}
+
+.hero-video-iframe {
+  pointer-events: none;
+}
