@@ -46,6 +46,9 @@ export type Activity = {
   sortOrder: number
   time?: string
   status?: ActivityStatus | ''
+  activityId?: string
+  /** Trip-only wording. Does not write back to the activity master. */
+  customDescription?: string
   notes?: string
   extraCost?: string
   bookingRef?: string
@@ -78,6 +81,7 @@ export type Day = {
   dayNumber: number
   date: string
   destination: string
+  destinationId?: string
   title: string
   image: string
   activities: Activity[]
@@ -103,6 +107,8 @@ export type Accommodation = {
   destination: string
   hotelId: string
   hotelName: string
+  roomCategoryId?: string
+  roomCategoryName?: string
   nights: number
   starCategory: number
   mealPlan: string
@@ -159,6 +165,13 @@ export type Trip = {
   cancellationNote: string
   accommodationNote: string
   travelExpert: TravelExpert
+  /** Selected transport type for the whole trip. A day can still describe its own route. */
+  transportId?: string
+  transportName?: string
+  supplierId?: string
+  supplierName?: string
+  vehicleRegistration?: string
+  driverName?: string
   /** Linked internal costing record. Customer itinerary never shows buy rates or margins. */
   costingId?: string
   updatedAt: string

@@ -1,13 +1,16 @@
 import { NavLink } from 'react-router-dom'
-import { Calculator, CalendarRange, Hotel, MapPin, Users } from 'lucide-react'
+import { Bus, Calculator, CalendarRange, Hotel, MapPin, Ticket, Truck, Users } from 'lucide-react'
 import { ThemeToggle } from '../ui/ThemeToggle'
 
 const links = [
-  { to: '/', label: 'Trips', icon: CalendarRange },
+  { to: '/', label: 'Itinerary', icon: CalendarRange },
   { to: '/destinations', label: 'Destinations', icon: MapPin },
+  { to: '/hotels', label: 'Hotels', icon: Hotel },
+  { to: '/activities', label: 'Activities & Entrance Fees', icon: Ticket },
+  { to: '/transport', label: 'Transport', icon: Bus },
+  { to: '/suppliers', label: 'Suppliers', icon: Truck },
   { to: '/costing', label: 'Costing', icon: Calculator },
   { to: '/customers', label: 'Customers', icon: Users },
-  { to: '/hotels', label: 'Hotels', icon: Hotel },
 ]
 
 export function Sidebar() {
@@ -38,6 +41,17 @@ export function Sidebar() {
       </nav>
       <div className="px-3 pt-4">
         <ThemeToggle />
+        <button
+          type="button"
+          className="mt-3 px-1 text-[11px] text-gray-400 underline"
+          onClick={() => {
+            if (!window.confirm('Reset prototype data? This clears records created in this browser and restores the demo set.')) return
+            ;['travelbuilding.destinations.v1', 'travelbuilding.hotel-master.v1', 'travelbuilding.hotels.v3', 'travelbuilding.activities.v1', 'travelbuilding.transport.v1', 'travelbuilding.suppliers.v1', 'travelbuilding.trip.v3', 'travelbuilding.costing.v2'].forEach((key) => localStorage.removeItem(key))
+            window.location.reload()
+          }}
+        >
+          Reset demo data
+        </button>
       </div>
     </aside>
   )

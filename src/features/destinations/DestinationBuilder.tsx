@@ -10,6 +10,7 @@ import {
 } from '../../lib/destination-completeness'
 import { useDestinations } from '../../state/destination-store'
 import type { DestinationSectionId } from '../../types/destination'
+import { AskAiButton, DestinationAiChat } from './DestinationAiChat'
 import { DestinationNav } from './DestinationNav'
 import { DestinationPreview } from './DestinationPreview'
 import { ActivitiesForm } from './forms/ActivitiesForm'
@@ -23,10 +24,14 @@ export function DestinationBuilder({
   onClose,
   mobileTab,
   onShowEditor,
+  aiOpen,
+  onAiOpenChange,
 }: {
   onClose: () => void
   mobileTab?: 'edit' | 'preview'
   onShowEditor?: () => void
+  aiOpen: boolean
+  onAiOpenChange: (open: boolean) => void
 }) {
   const { active, saveStatus, patchActive } = useDestinations()
   const [section, setSection] = useState<DestinationSectionId>('basics')
@@ -62,9 +67,9 @@ export function DestinationBuilder({
 
   return (
     <>
-      <div className="flex h-full min-h-0 w-full overflow-hidden rounded-t-xl bg-white shadow-lg dark:bg-[#1E1E20]">
+      <div className="relative flex h-full min-h-0 w-full overflow-hidden rounded-t-xl bg-white shadow-lg dark:bg-[#1E1E20]">
         <div
-          className={`h-full w-full flex-shrink-0 md:w-[46%] ${isMobilePreview ? 'hidden md:flex md:flex-col' : 'flex flex-col'} border-r border-gray-100 dark:border-[#2C2A2A]`}
+          className={`h-full w-full flex-shrink-0 transition-[width] duration-300 ${aiOpen ? 'md:w-[38%]' : 'md:w-[46%]'} ${isMobilePreview ? 'hidden md:flex md:flex-col' : 'flex flex-col'} border-r border-gray-100 dark:border-[#2C2A2A]`}
         >
           <div className="relative flex h-full min-h-0 flex-col">
             <BuilderHeader
@@ -75,6 +80,7 @@ export function DestinationBuilder({
               showPreviewToggle
               previewLabel="Show preview"
               onShowPreview={() => setShowPreview(true)}
+              actions={<AskAiButton onClick={() => onAiOpenChange(true)} />}
             />
             <p className="px-6 pb-1 text-xs text-gray-400">
               Destination profile {progress.percent}% complete
@@ -118,9 +124,10 @@ export function DestinationBuilder({
               Edit
             </button>
           </div>
-          <DestinationPreview destination={active} />
+          <DestinationPreview destination={active} onAskAi={() => onAiOpenChange(true)} />
         </div>
       </div>
+      <DestinationAiChat destination={active} open={aiOpen} onClose={() => onAiOpenChange(false)} />
       <Modal
         open={!!issues}
         title="A few details remaining"

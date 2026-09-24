@@ -19,6 +19,7 @@ import { SearchSelect } from '../../../components/ui/SearchSelect'
 import { TextAreaField } from '../../../components/ui/TextAreaField'
 import { formatDuration } from '../../../data/destination-catalog'
 import { uid } from '../../../lib/ids'
+import { useActivities } from '../../../state/activity-store'
 import { useDestinations } from '../../../state/destination-store'
 import type { ItineraryPoint, SuggestedTime } from '../../../types/destination'
 import { DurationFields, MoreDetails, SectionHead, minutesToParts, partsToMinutes } from './shared'
@@ -96,6 +97,8 @@ function SortablePoint({
 
 export function ItineraryContentForm() {
   const { active: d, patchActive } = useDestinations()
+  const { activities } = useActivities()
+  const linked = activities.filter((activity) => d.activityIds.includes(activity.id))
   const [draft, setDraft] = useState<ItineraryPoint | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const dur = minutesToParts(draft?.durationMinutes)
@@ -199,7 +202,7 @@ export function ItineraryContentForm() {
               optional
               placeholder="Optional"
               value={draft.relatedActivityId ?? ''}
-              options={d.activities.map((a) => ({ value: a.id, label: a.name }))}
+              options={linked.map((a) => ({ value: a.id, label: a.name }))}
               onChange={(relatedActivityId) => setDraft({ ...draft, relatedActivityId })}
             />
             <DurationFields

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '../../components/ui/Toast'
 import { BaseButton } from '../../components/ui/BaseButton'
 import { Modal } from '../../components/ui/Modal'
 import { BuilderHeader } from '../itinerary/BuilderHeader'
@@ -34,6 +35,7 @@ export function CostingBuilder({
   const { active, saveStatus, patchActive, duplicateActive } = useCosting()
   const { trip, patch } = useItinerary()
   const navigate = useNavigate()
+  const { notify } = useToast()
   const [section, setSection] = useState<CostingSectionId>('tour')
   const [showSummary, setShowSummary] = useState(false)
   const [issues, setIssues] = useState<string[] | null>(null)
@@ -88,6 +90,7 @@ export function CostingBuilder({
 
   function saveAndReturn() {
     applySellingToItinerary()
+    notify('Costing saved. Selling price updated on the itinerary.')
     onClose()
     navigate('/')
   }

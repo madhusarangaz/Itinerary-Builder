@@ -9,7 +9,9 @@ import {
   type ReactNode,
 } from 'react'
 import { emptyDestination, sampleDestinations } from '../data/destination-sample'
+import { isLegacyActivityList, legacyActivityToRecord } from '../lib/activity'
 import { uid } from '../lib/ids'
+import { mergeActivities } from './activity-store'
 import type { Destination, DestinationConnection } from '../types/destination'
 import type { SaveStatus } from '../types/itinerary'
 
@@ -25,6 +27,7 @@ type Ctx = {
   duplicateActive: () => Destination
   duplicateDestination: (id: string) => Destination
   archiveDestination: (id: string) => void
+  removeDestination: (id: string) => void
 }
 
 const DestinationContext = createContext<Ctx | null>(null)
@@ -33,8 +36,22 @@ function loadAll(): Destination[] {
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) {
-      const parsed = JSON.parse(raw) as Destination[]
-      if (Array.isArray(parsed) && parsed.length) return parsed
+      const parsed = JSON.parse(raw) as Array<Destination & { activities?: unknown }>
+      if (Array.isArray(parsed) && parsed.length) {
+        const extracted = parsed.flatMap((row) =>
+          isLegacyActivityList(row.activities) ? row.activities.map((activity) => legacyActivityToRecord(activity, { id: row.id, name: row.name })) : [],
+        )
+        if (extracted.length) mergeActivities(extracted)
+        return parsed.map((row) => {
+          const { activities, ...rest } = row
+          const activityIds = Array.isArray(row.activityIds)
+            ? row.activityIds
+            : isLegacyActivityList(activities)
+              ? activities.map((activity) => activity.id)
+              : []
+          return { ...rest, activityIds }
+        })
+      }
     }
   } catch {
     /* ignore */
@@ -131,7 +148,7 @@ export function DestinationProvider({ children }: { children: ReactNode }) {
       status: 'draft',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      activities: origin.activities.map((a) => ({ ...a, id: uid('act') })),
+      activityIds: [...origin.activityIds],
       itineraryPoints: origin.itineraryPoints.map((p) => ({ ...p, id: uid('pt') })),
       travellerTips: origin.travellerTips.map((t) => ({ ...t, id: uid('tip') })),
       destinationConnections: origin.destinationConnections.map((c) => ({ ...c, id: uid('conn') })),
@@ -156,6 +173,11 @@ export function DestinationProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
+  const removeDestination = useCallback((id: string) => {
+    setDestinations((prev) => prev.filter((d) => d.id !== id))
+    setActiveId((current) => (current === id ? '' : current))
+  }, [])
+
   const value = useMemo(
     () => ({
       destinations,
@@ -167,8 +189,9 @@ export function DestinationProvider({ children }: { children: ReactNode }) {
       duplicateActive,
       duplicateDestination,
       archiveDestination,
+      removeDestination,
     }),
-    [destinations, active, saveStatus, patchActive, addDestination, duplicateActive, duplicateDestination, archiveDestination],
+    [destinations, active, saveStatus, patchActive, addDestination, duplicateActive, duplicateDestination, archiveDestination, removeDestination],
   )
 
   return <DestinationContext.Provider value={value}>{children}</DestinationContext.Provider>

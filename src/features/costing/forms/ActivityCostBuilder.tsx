@@ -4,29 +4,33 @@ import { BaseButton } from '../../../components/ui/BaseButton'
 import { InputField } from '../../../components/ui/InputField'
 import { StepperField } from '../../../components/ui/StepperField'
 import { TextAreaField } from '../../../components/ui/TextAreaField'
-import { ACTIVITY_LIBRARY, suggestedActivities } from '../../../data/activity-library'
+import { formatUsd } from '../../../data/activity-catalog'
 import { uid } from '../../../lib/ids'
 import { calculateActivityCost, calculateSightseeingTotal, formatMoney } from '../../../lib/costing-calc'
+import { useActivities } from '../../../state/activity-store'
 import { useCosting } from '../../../state/costing-store'
-import type { ActivityLibraryItem } from '../../../types/costing'
+import type { ActivityRecord } from '../../../types/activity'
 
 export function ActivityCostBuilder() {
   const { active: c, patchActive } = useCosting()
+  const { activities: master } = useActivities()
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [custom, setCustom] = useState(false)
   const selectedIds = new Set(c.activities.map((a) => a.activityId).filter(Boolean))
   const list = useMemo(() => {
     const term = q.toLowerCase()
-    return ACTIVITY_LIBRARY.filter(
-      (a) => !selectedIds.has(a.id) && (a.name.toLowerCase().includes(term) || a.destinationName?.toLowerCase().includes(term)),
+    return master.filter(
+      (a) => a.status !== 'inactive' && !selectedIds.has(a.id) && `${a.name} ${a.locationName}`.toLowerCase().includes(term),
     )
-  }, [q, selectedIds])
+  }, [q, selectedIds, master])
 
   const destinations = [...new Set(c.accommodation.map((r) => r.destinationName).filter(Boolean))]
-  const suggested = destinations.flatMap((d) => suggestedActivities(d)).filter((a, i, arr) => arr.findIndex((x) => x.id === a.id) === i && !selectedIds.has(a.id))
+  const suggested = master.filter(
+    (a) => a.status === 'active' && !selectedIds.has(a.id) && destinations.some((name) => a.locationName.toLowerCase() === name.toLowerCase() || a.applicableRoutes.some((r) => r.toLocationName.toLowerCase() === name.toLowerCase() || r.fromLocationName.toLowerCase() === name.toLowerCase())),
+  )
 
-  function add(item: ActivityLibraryItem) {
+  function add(item: ActivityRecord) {
     patchActive({
       activities: [
         ...c.activities,
@@ -34,9 +38,13 @@ export function ActivityCostBuilder() {
           id: uid('ac'),
           activityId: item.id,
           name: item.name,
-          destinationName: item.destinationName,
-          costPerPerson: item.costPerPerson,
-          quantity: 1,
+          destinationName: item.locationName,
+          costPerPerson: item.adultRateUsd,
+          quantity: c.numberOfPeople || 1,
+          adultQty: c.numberOfPeople || 1,
+          childQty: 0,
+          masterAdultRate: item.adultRateUsd,
+          masterChildRate: item.childRateUsd,
         },
       ],
     })
@@ -71,7 +79,7 @@ export function ActivityCostBuilder() {
                 onClick={() => add(a)}
               >
                 <span className="text-gray-900 dark:text-zinc-100">{a.name}</span>
-                <span className="text-xs text-gray-400">{formatMoney(a.costPerPerson, c.currency)}</span>
+                <span className="text-xs text-gray-400">{formatUsd(a.adultRateUsd)}</span>
               </button>
             ))}
             {list.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">No matching activities</p>}
@@ -118,29 +126,66 @@ export function ActivityCostBuilder() {
           <div className="grid grid-cols-2 gap-3">
             <InputField
               className="mb-2"
-              label="Per person cost"
+              label="Adult rate (USD)"
               type="number"
               min={0}
-              value={a.costPerPerson}
-              onChange={(e) =>
+              value={a.overrideAdultRate ?? a.masterAdultRate ?? a.costPerPerson}
+              onChange={(e) => {
+                const next = Number(e.target.value)
+                const masterRate = a.masterAdultRate ?? a.costPerPerson
                 patchActive({
-                  activities: c.activities.map((x) => (x.id === a.id ? { ...x, costPerPerson: Number(e.target.value) || 0 } : x)),
+                  activities: c.activities.map((x) =>
+                    x.id === a.id
+                      ? { ...x, overrideAdultRate: next === masterRate ? undefined : next, costPerPerson: Number.isNaN(next) ? 0 : next }
+                      : x,
+                  ),
                 })
-              }
+              }}
             />
             <StepperField
               className="mb-2"
-              label="Included qty"
+              label="Adults"
               min={0}
-              max={20}
-              value={a.quantity}
-              onChange={(quantity) =>
+              max={40}
+              value={a.adultQty ?? a.quantity}
+              onChange={(adultQty) =>
                 patchActive({
-                  activities: c.activities.map((x) => (x.id === a.id ? { ...x, quantity } : x)),
+                  activities: c.activities.map((x) => (x.id === a.id ? { ...x, adultQty, quantity: adultQty } : x)),
                 })
               }
             />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <InputField
+              className="mb-2"
+              label="Child rate (USD)"
+              type="number"
+              min={0}
+              value={a.overrideChildRate ?? a.masterChildRate ?? 0}
+              onChange={(e) => {
+                const next = Number(e.target.value)
+                const masterRate = a.masterChildRate ?? 0
+                patchActive({
+                  activities: c.activities.map((x) => (x.id === a.id ? { ...x, overrideChildRate: next === masterRate ? undefined : next, childQty: x.childQty ?? 0 } : x)),
+                })
+              }}
+            />
+            <StepperField
+              className="mb-2"
+              label="Children"
+              min={0}
+              max={40}
+              value={a.childQty ?? 0}
+              onChange={(childQty) =>
+                patchActive({
+                  activities: c.activities.map((x) => (x.id === a.id ? { ...x, childQty } : x)),
+                })
+              }
+            />
+          </div>
+          {a.masterAdultRate != null && a.overrideAdultRate != null && a.overrideAdultRate !== a.masterAdultRate ? (
+            <p className="mb-1 text-[11px] text-gray-400">Master rate {formatUsd(a.masterAdultRate)} · Trip rate {formatUsd(a.overrideAdultRate)}</p>
+          ) : null}
           <p className="text-right text-sm font-medium text-gray-900 dark:text-zinc-100">
             {formatMoney(calculateActivityCost(a, c.numberOfPeople), c.currency)}
           </p>

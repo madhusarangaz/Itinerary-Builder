@@ -47,6 +47,12 @@ export type TransportationCost = {
   extraMileage: number
   googleMapsLink?: string
   ratePerKmLKR: number
+  supplierId?: string
+  supplierName?: string
+  transportId?: string
+  transportName?: string
+  /** Rate copied when costing was created. Later master changes do not rewrite this. */
+  masterRatePerKmLKR?: number
 }
 
 export type DriverGuideCost = {
@@ -68,6 +74,12 @@ export type ActivityCost = {
   destinationName?: string
   costPerPerson: number
   quantity: number
+  adultQty?: number
+  childQty?: number
+  masterAdultRate?: number
+  masterChildRate?: number
+  overrideAdultRate?: number
+  overrideChildRate?: number
   notes?: string
 }
 

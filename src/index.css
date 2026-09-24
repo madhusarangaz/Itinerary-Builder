@@ -86,6 +86,19 @@ html.dark #root {
   padding-right: 1.25rem;
 }
 
+@keyframes dest-ai-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.dest-ai-drawer {
+  animation: dest-ai-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .dest-profile-pad {
   padding-left: 1.75rem;
   padding-right: 1.75rem;

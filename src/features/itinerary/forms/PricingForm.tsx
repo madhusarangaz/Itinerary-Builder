@@ -6,12 +6,19 @@ import { InputField } from '../../../components/ui/InputField'
 import { TextAreaField } from '../../../components/ui/TextAreaField'
 import { calculatePricing, formatMoney, sellingFigures } from '../../../lib/costing-calc'
 import { COSTING_STATUS_LABELS } from '../../../lib/costing-completeness'
+import { costingFromTrip } from '../../../data/costing-sample'
+import { useActivities } from '../../../state/activity-store'
+import { useTransport } from '../../../state/transport-store'
+import { useToast } from '../../../components/ui/Toast'
 import { useCosting } from '../../../state/costing-store'
 import { useItinerary } from '../../../state/itinerary-store'
 
 export function PricingForm() {
   const { trip, patch } = useItinerary()
-  const { costings, setActiveId, createFromTrip } = useCosting()
+  const { costings, setActiveId, addCosting } = useCosting()
+  const { activities } = useActivities()
+  const { transports } = useTransport()
+  const { notify } = useToast()
   const navigate = useNavigate()
   const p = trip.pricing
   const [searchOpen, setSearchOpen] = useState(false)
@@ -47,7 +54,8 @@ export function PricingForm() {
   }
 
   function createNew() {
-    const created = createFromTrip(trip)
+    const transport = transports.find((row) => row.id === trip.transportId) ?? null
+    const created = addCosting(costingFromTrip(trip, { activities, transport }))
     const sell = sellingFigures(created)
     patch({
       costingId: created.id,
@@ -57,6 +65,7 @@ export function PricingForm() {
         travellerCount: sell.travellerCount,
       },
     })
+    notify('Costing created from itinerary.')
     navigate(`/costing?open=${created.id}&from=itinerary`)
   }
 
@@ -146,7 +155,7 @@ export function PricingForm() {
               )}
             </div>
             <BaseButton variant="secondary" onClick={createNew}>
-              + Create new costing
+              + Create costing from itinerary
             </BaseButton>
           </div>
         )}

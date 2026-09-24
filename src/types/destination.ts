@@ -171,7 +171,8 @@ export type Destination = {
   climate: DestinationClimate
   airportConnections: AirportConnection[]
   destinationConnections: DestinationConnection[]
-  activities: DestinationActivity[]
+  /** Links into Activities & Entrance Fees. Full records live on the activity master. */
+  activityIds: string[]
   itineraryPoints: ItineraryPoint[]
   travellerTips: TravellerTip[]
   status: DestinationStatus

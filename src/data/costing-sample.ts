@@ -2,6 +2,8 @@ import { uid } from '../lib/ids'
 import { calendarDays, nightsBetween } from '../lib/dates'
 import type { AccommodationCostRow, Costing, RoomCost } from '../types/costing'
 import type { Trip } from '../types/itinerary'
+import type { ActivityRecord } from '../types/activity'
+import type { Transport } from '../types/transport'
 
 function rooms(sgl: [number, number], dbl: [number, number], trpl: [number, number]): RoomCost[] {
   return [
@@ -216,7 +218,7 @@ export function emptyCosting(): Costing {
   }
 }
 
-export function costingFromTrip(trip: Trip): Costing {
+export function costingFromTrip(trip: Trip, extras?: { activities?: ActivityRecord[]; transport?: Transport | null }): Costing {
   const nights = nightsBetween(trip.startDate, trip.endDate)
   const tripDays = calendarDays(trip.startDate, trip.endDate)
   const stayByDest = new Map(trip.accommodations.map((a) => [a.destination.trim().toLowerCase(), a]))
@@ -236,10 +238,36 @@ export function costingFromTrip(trip: Trip): Costing {
       mealPlan: stay?.mealPlan || (departure ? '' : 'HB'),
       nights: departure ? 0 : 1,
       routeKm: departure ? 0 : 40,
-      rooms: rooms([0, 0], [0, 0], [0, 0]),
+      roomType: stay?.roomCategoryName,
+      rooms: stay?.roomCategoryName
+        ? [{ id: uid('rm'), type: 'CUSTOM' as const, label: stay.roomCategoryName, rate: 0, quantity: 1 }]
+        : rooms([0, 0], [0, 1], [0, 0]),
       guideRoomRate: 0,
     }
   })
+  const activityRows = trip.days.flatMap((day) =>
+    day.activities
+      .filter((item) => item.type === 'activity' && item.title.trim())
+      .map((item) => {
+        const master = extras?.activities?.find((row) => row.id === item.activityId)
+        const optional = item.status === 'optional'
+        return {
+          id: uid('ac'),
+          activityId: item.activityId,
+          name: item.title,
+          destinationName: day.destination,
+          costPerPerson: master?.adultRateUsd ?? 0,
+          quantity: optional ? 0 : trip.adults || 1,
+          adultQty: optional ? 0 : trip.adults || 1,
+          childQty: optional ? 0 : trip.children || 0,
+          masterAdultRate: master?.adultRateUsd ?? 0,
+          masterChildRate: master?.childRateUsd ?? 0,
+          notes: optional ? 'Optional — not in the base package until a quantity is entered.' : item.status === 'extra' ? 'Additional cost' : undefined,
+        }
+      }),
+  )
+  const transport = extras?.transport
+  const perKm = transport?.costing.perKmRate
   const base = emptyCosting()
   return {
     ...base,
@@ -256,6 +284,16 @@ export function costingFromTrip(trip: Trip): Costing {
     chargeableGuideDays: nights,
     currency: trip.pricing.currency,
     accommodation,
+    activities: activityRows,
+    transportation: {
+      ...base.transportation,
+      transportId: trip.transportId,
+      transportName: trip.transportName,
+      supplierId: trip.supplierId,
+      supplierName: trip.supplierName,
+      ratePerKmLKR: perKm ?? base.transportation.ratePerKmLKR,
+      masterRatePerKmLKR: perKm,
+    },
     driverGuide: {
       ...base.driverGuide,
       driverDays: nights,

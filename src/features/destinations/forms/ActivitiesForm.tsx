@@ -1,63 +1,21 @@
-import {
-  closestCenter,
-  DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core'
+import { closestCenter, DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { GripVertical, Plus, Search, Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { BaseButton } from '../../../components/ui/BaseButton'
-import { BaseSelect } from '../../../components/ui/BaseSelect'
-import { CheckboxField } from '../../../components/ui/CheckboxField'
-import { ChoicePills, MultiChips } from '../../../components/ui/ChoicePills'
 import { Drawer } from '../../../components/ui/Drawer'
-import { ImageUploader } from '../../../components/ui/ImageUploader'
 import { InputField } from '../../../components/ui/InputField'
-import { StepperField } from '../../../components/ui/StepperField'
-import { TextAreaField } from '../../../components/ui/TextAreaField'
-import { ACTIVITY_CATEGORIES, MONTHS, SUITABLE_FOR, formatDuration } from '../../../data/destination-catalog'
-import { emptyImage } from '../../../data/destination-sample'
+import { formatDuration } from '../../../data/destination-catalog'
+import { formatUsd } from '../../../data/activity-catalog'
+import { emptyActivity } from '../../../lib/activity'
 import { uid } from '../../../lib/ids'
+import { useActivities } from '../../../state/activity-store'
 import { useDestinations } from '../../../state/destination-store'
-import type { ActivityCostType, ActivityDifficulty, ActivityMasterType, DestinationActivity, ItineraryPoint, SuggestedTime } from '../../../types/destination'
-import { DurationFields, MoreDetails, SectionHead, formatActivityCost, minutesToParts, partsToMinutes } from './shared'
-
-const TIMES = ['Morning', 'Afternoon', 'Evening', 'Any Time']
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'AUD', 'LKR']
-const COST_TYPES: { value: ActivityCostType; label: string }[] = [
-  { value: 'per_person', label: 'Per person' },
-  { value: 'per_group', label: 'Per group' },
-  { value: 'per_vehicle', label: 'Per vehicle' },
-  { value: 'flat', label: 'Flat rate' },
-  { value: 'free', label: 'Free' },
-  { value: 'unknown', label: 'Unknown' },
-]
-const QUICK_DURATION = [
-  { label: '1 hour', minutes: 60 },
-  { label: '2 hours', minutes: 120 },
-  { label: 'Half day', minutes: 240 },
-  { label: 'Full day', minutes: 480 },
-]
-
-function emptyActivity(): DestinationActivity {
-  return {
-    id: uid('act'),
-    name: '',
-    shortDescription: '',
-    categories: [],
-    durationMinutes: 120,
-    recommendedTimes: ['Morning'],
-    masterType: 'standard',
-    cost: { currency: 'USD', type: 'per_person', amount: 0 },
-    suitableFor: [],
-    whatToBring: [],
-    sortOrder: 0,
-  }
-}
+import { useHotelMaster } from '../../../state/hotel-store'
+import type { ActivityRecord } from '../../../types/activity'
+import type { ItineraryPoint, SuggestedTime } from '../../../types/destination'
+import { SectionHead } from './shared'
 
 function timeToSuggested(times: string[]): SuggestedTime {
   if (times.includes('Evening')) return 'evening'
@@ -65,78 +23,57 @@ function timeToSuggested(times: string[]): SuggestedTime {
   return 'morning'
 }
 
-function SortableActivity({
-  activity,
-  onEdit,
-  onRemove,
-  onAddToItinerary,
-}: {
-  activity: DestinationActivity
-  onEdit: () => void
-  onRemove: () => void
-  onAddToItinerary: () => void
-}) {
+function SortableLink({ activity, onRemove, onAddToItinerary }: { activity: ActivityRecord; onRemove: () => void; onAddToItinerary: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: activity.id })
   return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className="flex gap-3 rounded-xl border border-gray-100 p-3 dark:border-[#2C2A2A]"
-    >
-      <button type="button" className="mt-2 text-gray-300" {...attributes} {...listeners}>
-        <GripVertical size={16} />
-      </button>
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className="flex gap-3 rounded-xl border border-gray-100 p-3 dark:border-[#2C2A2A]">
+      <button type="button" className="mt-2 text-gray-300" {...attributes} {...listeners}><GripVertical size={16} /></button>
       <div className="h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-zinc-800">
         {activity.image?.url ? <img src={activity.image.url} alt="" className="h-full w-full object-cover" /> : null}
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-gray-900 dark:text-zinc-100">{activity.name}</p>
         <p className="truncate text-xs text-gray-500">{activity.categories.join(' · ') || 'Uncategorised'}</p>
-        <p className="text-xs text-gray-400">
-          {formatDuration(activity.durationMinutes) || 'Duration TBD'}
-          {activity.difficulty ? ` · ${activity.difficulty[0].toUpperCase()}${activity.difficulty.slice(1)}` : ''}
-        </p>
-        {activity.cost ? <p className="text-xs text-gray-600 dark:text-zinc-300">Typical cost {formatActivityCost(activity.cost)}</p> : null}
-        <button type="button" className="mt-1 text-[11px] text-gray-500 underline" onClick={onAddToItinerary}>
-          Add to itinerary content
-        </button>
+        <p className="text-xs text-gray-400">{formatDuration(activity.durationMinutes) || 'Duration TBD'} · {formatUsd(activity.adultRateUsd)} adult</p>
+        <button type="button" className="mt-1 text-[11px] text-gray-500 underline" onClick={onAddToItinerary}>Add to itinerary content</button>
       </div>
-      <div className="flex flex-col gap-1">
-        <button type="button" className="rounded-lg p-2 text-gray-400 hover:bg-gray-50" onClick={onEdit}>
-          <Pencil size={14} />
-        </button>
-        <button type="button" className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500" onClick={onRemove}>
-          <Trash2 size={14} />
-        </button>
-      </div>
+      <button type="button" className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500" onClick={onRemove}><Trash2 size={14} /></button>
     </div>
   )
 }
 
 export function ActivitiesForm() {
   const { active: d, patchActive } = useDestinations()
-  const [draft, setDraft] = useState<DestinationActivity | null>(null)
-  const [bring, setBring] = useState('')
+  const { hotels } = useHotelMaster()
+  const { activities, addActivity, patchActive: patchActivity, removeActivity } = useActivities()
+  const [q, setQ] = useState('')
+  const [creatingId, setCreatingId] = useState<string | null>(null)
+  const [draftName, setDraftName] = useState('')
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
-  const dur = minutesToParts(draft?.durationMinutes)
+  const linked = activities.filter((activity) => d.activityIds.includes(activity.id))
+  const suggestions = useMemo(() => {
+    const term = q.toLowerCase().trim()
+    return activities
+      .filter((activity) => !d.activityIds.includes(activity.id) && activity.status !== 'inactive')
+      .filter((activity) => !term || `${activity.name} ${activity.locationName} ${activity.categories.join(' ')}`.toLowerCase().includes(term))
+      .sort((a, b) => Number(b.locationId === d.id) - Number(a.locationId === d.id))
+  }, [activities, d.activityIds, d.id, q])
 
-  function save() {
-    if (!draft?.name.trim()) return
-    const exists = d.activities.some((a) => a.id === draft.id)
-    const next = exists ? d.activities.map((a) => (a.id === draft.id ? draft : a)) : [...d.activities, { ...draft, sortOrder: d.activities.length }]
-    patchActive({ activities: next })
-    setDraft(null)
+  function link(id: string) {
+    if (d.activityIds.includes(id)) return
+    patchActive({ activityIds: [...d.activityIds, id] })
+    setQ('')
   }
 
-  function addToItinerary(activity: DestinationActivity) {
+  function addToItinerary(activity: ActivityRecord) {
     const point: ItineraryPoint = {
       id: uid('pt'),
       title: activity.name,
-      description: activity.shortDescription || '',
+      description: activity.description || '',
       suggestedTime: timeToSuggested(activity.recommendedTimes),
       relatedActivityId: activity.id,
       durationMinutes: activity.durationMinutes,
-      optional: activity.masterType !== 'standard',
+      optional: false,
       sortOrder: d.itineraryPoints.length,
     }
     patchActive({ itineraryPoints: [...d.itineraryPoints, point] })
@@ -145,256 +82,77 @@ export function ActivitiesForm() {
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e
     if (!over || active.id === over.id) return
-    const ids = d.activities.map((a) => a.id)
-    patchActive({
-      activities: arrayMove(d.activities, ids.indexOf(String(active.id)), ids.indexOf(String(over.id))).map((a, i) => ({
-        ...a,
-        sortOrder: i,
-      })),
-    })
+    const ids = d.activityIds
+    patchActive({ activityIds: arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id))) })
+  }
+
+  function startCreate() {
+    const created = addActivity(emptyActivity({ locationId: d.id, locationName: d.name, type: 'within_destination', status: 'draft' }))
+    setCreatingId(created.id)
+    setDraftName('')
+  }
+
+  function saveCreated() {
+    if (!creatingId || !draftName.trim()) return
+    patchActivity({ name: draftName.trim(), status: 'active' })
+    link(creatingId)
+    setCreatingId(null)
   }
 
   return (
     <div id="form-activities" className="scroll-mt-3 space-y-1 px-6 py-4">
-      <SectionHead title="Activities & Experiences" helper="Add reusable experiences travellers can do at this destination." />
-
+      <SectionHead title="Activities" helper="Link reusable activities from Activities & Entrance Fees. Hotels linked to this destination appear automatically." />
+      <div className="mb-4 rounded-xl border border-gray-100 p-3 dark:border-[#2C2A2A]">
+        <p className="text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase">Hotels here</p>
+        {hotels.filter((hotel) => hotel.destinationId === d.id && hotel.status !== 'inactive').length ? (
+          <ul className="mt-2 space-y-1 text-sm">
+            {hotels.filter((hotel) => hotel.destinationId === d.id && hotel.status !== 'inactive').map((hotel) => (
+              <li key={hotel.id}>{hotel.name} · {hotel.starCategory ? `${hotel.starCategory} Star` : 'Unrated'}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-gray-400">No hotels linked to {d.name || 'this destination'} yet. Add one in Hotels and choose this destination.</p>
+        )}
+      </div>
+      <div className="relative mb-3">
+        <InputField label="Search & add activity" placeholder="Search activity..." startIcon={<Search size={16} />} value={q} onChange={(e) => setQ(e.target.value)} />
+        {q.trim() ? (
+          <div className="absolute z-20 max-h-56 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+            {suggestions.slice(0, 8).map((activity) => (
+              <button key={activity.id} type="button" className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-zinc-700" onClick={() => link(activity.id)}>
+                <span>
+                  <span className="block text-gray-900 dark:text-zinc-100">{activity.name}</span>
+                  <span className="text-[11px] text-gray-400">{activity.categories.slice(0, 2).join(' · ') || activity.locationName}</span>
+                </span>
+                <span className="text-xs text-gray-400">{formatUsd(activity.adultRateUsd)} adult</span>
+              </button>
+            ))}
+            {suggestions.length === 0 ? <p className="px-3 py-2 text-sm text-gray-400">No matching activities</p> : null}
+          </div>
+        ) : null}
+      </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={d.activities.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={linked.map((a) => a.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
-            {d.activities.map((activity) => (
-              <SortableActivity
-                key={activity.id}
-                activity={activity}
-                onEdit={() => setDraft({ ...activity })}
-                onRemove={() => patchActive({ activities: d.activities.filter((a) => a.id !== activity.id) })}
-                onAddToItinerary={() => addToItinerary(activity)}
-              />
+            {linked.map((activity) => (
+              <SortableLink key={activity.id} activity={activity} onRemove={() => patchActive({ activityIds: d.activityIds.filter((id) => id !== activity.id) })} onAddToItinerary={() => addToItinerary(activity)} />
             ))}
           </div>
         </SortableContext>
       </DndContext>
-
-      <BaseButton variant="secondary" className="mt-3" onClick={() => setDraft(emptyActivity())}>
-        <Plus size={14} /> Add activity
-      </BaseButton>
-
+      <BaseButton variant="secondary" className="mt-3" onClick={startCreate}><Plus size={14} /> Create New Activity</BaseButton>
       <Drawer
-        open={!!draft}
-        title={draft && d.activities.some((a) => a.id === draft.id) ? 'Edit activity' : 'Add activity'}
-        subtitle="Keep the essentials first — extra practical notes sit under More details."
-        onClose={() => setDraft(null)}
-        footer={
-          <div className="flex justify-end gap-2">
-            <BaseButton variant="secondary" onClick={() => setDraft(null)}>
-              Cancel
-            </BaseButton>
-            <BaseButton disabled={!draft?.name.trim()} onClick={save}>
-              Save activity
-            </BaseButton>
-          </div>
-        }
+        open={!!creatingId}
+        title="Create activity"
+        subtitle={`Location is set to ${d.name || 'this destination'} and type is Within Destination.`}
+        onClose={() => {
+          if (creatingId) removeActivity(creatingId)
+          setCreatingId(null)
+        }}
+        footer={<div className="flex justify-end gap-2"><BaseButton variant="secondary" onClick={() => { if (creatingId) removeActivity(creatingId); setCreatingId(null) }}>Cancel</BaseButton><BaseButton disabled={!draftName.trim()} onClick={saveCreated}>Save and link</BaseButton></div>}
       >
-        {draft ? (
-          <>
-            <InputField
-              label="Activity name *"
-              placeholder="Sigiriya Rock Fortress"
-              value={draft.name}
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            />
-            <TextAreaField
-              label="Short description"
-              optional
-              rows={3}
-              placeholder="Climb the ancient rock fortress and explore its frescoes, landscaped gardens and panoramic summit views."
-              value={draft.shortDescription ?? ''}
-              onChange={(e) => setDraft({ ...draft, shortDescription: e.target.value })}
-            />
-            <p className="mb-1.5 text-sm text-gray-800 dark:text-zinc-100">Activity image</p>
-            <ImageUploader
-              value={draft.image?.url ?? ''}
-              aspect="aspect-[16/9]"
-              onChange={(url) => setDraft({ ...draft, image: emptyImage(url, { id: draft.image?.id }) })}
-              onRemove={() => setDraft({ ...draft, image: undefined })}
-            />
-            <MultiChips
-              label="Category"
-              value={draft.categories}
-              onChange={(categories) => setDraft({ ...draft, categories })}
-              options={ACTIVITY_CATEGORIES.map((c) => ({ value: c, label: c }))}
-            />
-            <p className="mb-1.5 text-sm text-gray-800">Typical duration</p>
-            <div className="mb-2 flex flex-wrap gap-1.5">
-              {QUICK_DURATION.map((q) => (
-                <button
-                  key={q.minutes}
-                  type="button"
-                  onClick={() => setDraft({ ...draft, durationMinutes: q.minutes })}
-                  className={`rounded-full px-3 py-1.5 text-sm ${
-                    draft.durationMinutes === q.minutes
-                      ? 'bg-gray-900 text-white dark:bg-[#7A3714]'
-                      : 'border border-gray-200 text-gray-600 dark:border-[#2C2A2A]'
-                  }`}
-                >
-                  {q.label}
-                </button>
-              ))}
-            </div>
-            <DurationFields
-              hours={dur.hours}
-              minutes={dur.minutes}
-              onChange={(h, m) => setDraft({ ...draft, durationMinutes: partsToMinutes(h, m) })}
-            />
-            <MultiChips
-              label="Recommended time"
-              value={draft.recommendedTimes}
-              onChange={(recommendedTimes) => setDraft({ ...draft, recommendedTimes })}
-              options={TIMES.map((t) => ({ value: t, label: t }))}
-            />
-            <ChoicePills
-              label="Availability type"
-              value={draft.masterType}
-              onChange={(masterType) => setDraft({ ...draft, masterType: masterType as ActivityMasterType })}
-              options={[
-                { value: 'standard', label: 'Standard' },
-                { value: 'optional', label: 'Optional' },
-                { value: 'addon', label: 'Add-on' },
-              ]}
-            />
-            <p className="mb-1 text-sm font-medium text-gray-800 dark:text-zinc-100">Typical cost</p>
-            <p className="mb-2 text-[11px] text-gray-400">Master rate only — costing can override this later for a specific trip.</p>
-            <div className="grid grid-cols-2 gap-3">
-              <BaseSelect
-                label="Currency"
-                value={draft.cost?.currency ?? 'USD'}
-                options={CURRENCIES.map((c) => ({ value: c, label: c }))}
-                onChange={(e) => setDraft({ ...draft, cost: { ...(draft.cost ?? { type: 'per_person' }), currency: e.target.value } })}
-              />
-              <BaseSelect
-                label="Cost type"
-                value={draft.cost?.type ?? 'per_person'}
-                options={COST_TYPES}
-                onChange={(e) =>
-                  setDraft({ ...draft, cost: { currency: draft.cost?.currency ?? 'USD', type: e.target.value as ActivityCostType, amount: draft.cost?.amount } })
-                }
-              />
-            </div>
-            {draft.cost?.type !== 'free' && draft.cost?.type !== 'unknown' ? (
-              <StepperField
-                label="Amount"
-                value={draft.cost?.amount ?? 0}
-                min={0}
-                max={5000}
-                step={5}
-                onChange={(amount) => setDraft({ ...draft, cost: { currency: draft.cost?.currency ?? 'USD', type: draft.cost?.type ?? 'per_person', amount } })}
-              />
-            ) : null}
-            {formatActivityCost(draft.cost) ? (
-              <p className="mb-3 -mt-1 text-xs text-gray-500">{formatActivityCost(draft.cost)}</p>
-            ) : null}
-
-            <MoreDetails>
-              <ChoicePills
-                label="Difficulty"
-                optional
-                value={draft.difficulty ?? ''}
-                onChange={(difficulty) => setDraft({ ...draft, difficulty: (difficulty || undefined) as ActivityDifficulty | undefined })}
-                options={[
-                  { value: 'easy', label: 'Easy' },
-                  { value: 'moderate', label: 'Moderate' },
-                  { value: 'challenging', label: 'Challenging' },
-                ]}
-              />
-              <p className="mb-1.5 text-sm text-gray-800">Suitable for</p>
-              <div className="mb-3 grid grid-cols-2 gap-1">
-                {SUITABLE_FOR.map((s) => (
-                  <CheckboxField
-                    key={s}
-                    className="mb-1"
-                    label={s}
-                    checked={draft.suitableFor.includes(s)}
-                    onChange={(on) =>
-                      setDraft({
-                        ...draft,
-                        suitableFor: on ? [...draft.suitableFor, s] : draft.suitableFor.filter((x) => x !== s),
-                      })
-                    }
-                  />
-                ))}
-              </div>
-              <p className="mb-1.5 text-sm text-gray-800">What to bring</p>
-              <div className="mb-2 flex flex-wrap gap-1.5">
-                {(draft.whatToBring ?? []).map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700 dark:bg-white/10 dark:text-zinc-200"
-                    onClick={() => setDraft({ ...draft, whatToBring: (draft.whatToBring ?? []).filter((t) => t !== tag) })}
-                  >
-                    {tag} ×
-                  </button>
-                ))}
-              </div>
-              <InputField
-                placeholder="Comfortable shoes"
-                value={bring}
-                onChange={(e) => setBring(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && bring.trim()) {
-                    e.preventDefault()
-                    setDraft({ ...draft, whatToBring: [...(draft.whatToBring ?? []), bring.trim()] })
-                    setBring('')
-                  }
-                }}
-              />
-              <TextAreaField
-                label="Dress requirements"
-                optional
-                rows={2}
-                value={draft.dressRequirements ?? ''}
-                onChange={(e) => setDraft({ ...draft, dressRequirements: e.target.value })}
-              />
-              <TextAreaField
-                label="Accessibility notes"
-                optional
-                rows={2}
-                value={draft.accessibilityNotes ?? ''}
-                onChange={(e) => setDraft({ ...draft, accessibilityNotes: e.target.value })}
-              />
-              <CheckboxField
-                label="Advance booking required"
-                checked={!!draft.bookingRequired}
-                onChange={(bookingRequired) => setDraft({ ...draft, bookingRequired })}
-              />
-              <CheckboxField
-                label="Entrance ticket required"
-                checked={!!draft.entranceFeeRequired}
-                onChange={(entranceFeeRequired) => setDraft({ ...draft, entranceFeeRequired })}
-              />
-              <CheckboxField
-                label="Seasonal activity"
-                checked={!!draft.seasonal}
-                onChange={(seasonal) => setDraft({ ...draft, seasonal })}
-              />
-              {draft.seasonal ? (
-                <MultiChips
-                  label="Available months"
-                  value={(draft.availableMonths ?? []).map(String)}
-                  onChange={(vals) => setDraft({ ...draft, availableMonths: vals.map(Number).sort((a, b) => a - b) })}
-                  options={MONTHS.map((m) => ({ value: String(m.n), label: m.label }))}
-                />
-              ) : null}
-              <TextAreaField
-                label="Internal notes"
-                optional
-                rows={2}
-                placeholder="Not shown to travellers."
-                value={draft.internalNotes ?? ''}
-                onChange={(e) => setDraft({ ...draft, internalNotes: e.target.value })}
-              />
-            </MoreDetails>
-          </>
-        ) : null}
+        <InputField label="Sightseeing / Activity Name *" placeholder="Sigiriya Rock Fortress" value={draftName} onChange={(e) => setDraftName(e.target.value)} />
+        <p className="text-xs text-gray-400">Adult and child rates start at 0. Open Activities & Entrance Fees to add fees, routes and the longer description.</p>
       </Drawer>
     </div>
   )

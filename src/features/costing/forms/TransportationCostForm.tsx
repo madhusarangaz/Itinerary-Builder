@@ -15,7 +15,9 @@ import {
   formatMoney,
 } from '../../../lib/costing-calc'
 import { formatShort } from '../../../lib/dates'
+import { SearchSelect } from '../../../components/ui/SearchSelect'
 import { useCosting } from '../../../state/costing-store'
+import { useSuppliers } from '../../../state/supplier-store'
 
 const RATE_PRESETS = [
   { value: '80', label: 'LKR 80', hint: '/ km' },
@@ -28,6 +30,7 @@ const EXTRA_CHIPS = [0, 40, 80, 100, 150]
 
 export function TransportationCostForm() {
   const { active: c, patchActive } = useCosting()
+  const { suppliers } = useSuppliers()
   const [kmOpen, setKmOpen] = useState(false)
   const [maps, setMaps] = useState(!!c.transportation.googleMapsLink)
   const [customRate, setCustomRate] = useState(
@@ -47,7 +50,18 @@ export function TransportationCostForm() {
   return (
     <div id="cost-transport" className="scroll-mt-3 space-y-1 px-6 py-4">
       <h3 className="mb-1 text-base font-semibold text-gray-900 dark:text-white">Transportation</h3>
-      <p className="mb-4 text-xs text-gray-400">Mileage is built from the daily route, then Google base KM and extras.</p>
+      <p className="mb-4 text-xs text-gray-400">Mileage is built from the daily route, then Google base KM and extras. Supplier is optional until the quote is confirmed.</p>
+      <SearchSelect
+        label="Supplier"
+        optional
+        placeholder="Select a fleet supplier later"
+        value={t.supplierId || t.supplierName || ''}
+        options={suppliers.filter((supplier) => supplier.type === 'vehicle_fleet' && supplier.status === 'active').map((supplier) => ({ value: supplier.id, label: supplier.name, hint: `${supplier.vehicleInventory.length} vehicle groups` }))}
+        onChange={(value) => {
+          const match = suppliers.find((supplier) => supplier.id === value)
+          patch({ supplierId: match?.id, supplierName: match?.name })
+        }}
+      />
 
       <div className="mb-4 rounded-xl border border-gray-100 px-4 py-3 dark:border-[#2C2A2A]">
         <div className="flex items-start justify-between gap-3">
@@ -70,6 +84,7 @@ export function TransportationCostForm() {
         onChange={(e) => patch({ grossMileage: Number(e.target.value) || 0 })}
       />
       <p className="mb-3 -mt-2 text-xs text-gray-400">Google / route base mileage for the whole tour</p>
+      {t.masterRatePerKmLKR != null ? <p className="mb-3 text-[11px] text-gray-400">Transport master rate captured for this costing: LKR {t.masterRatePerKmLKR}/km. Changing the trip rate does not change Transport Master.</p> : null}
 
       <ChoicePills
         label="Extra mileage"

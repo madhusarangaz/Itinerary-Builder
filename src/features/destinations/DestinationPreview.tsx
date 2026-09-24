@@ -2,9 +2,13 @@ import { Monitor, Smartphone } from 'lucide-react'
 import { useState } from 'react'
 import { formatDuration, formatStay, formatTravel, monthRangeLabel } from '../../data/destination-catalog'
 import { cn } from '../../lib/cn'
+import { useActivities } from '../../state/activity-store'
 import type { Destination } from '../../types/destination'
+import { AskAiButton } from './DestinationAiChat'
 
 function Profile({ destination: d }: { destination: Destination }) {
+  const { activities } = useActivities()
+  const linked = activities.filter((activity) => d.activityIds.includes(activity.id))
   const cover = d.coverImage?.url
   const guestTips = d.travellerTips.filter((t) => t.showInItinerary && !t.internalOnly)
   const air = d.airportConnections[0]
@@ -89,11 +93,11 @@ function Profile({ destination: d }: { destination: Destination }) {
         </div>
       </section>
 
-      {d.activities.length ? (
+      {linked.length ? (
         <section className="itinerary-section is-sand dest-profile-pad">
           <p className="itinerary-kicker">Top experiences</p>
           <div className="mt-4 space-y-4">
-            {d.activities.map((a) => (
+            {linked.map((a) => (
               <div key={a.id} className="flex gap-3">
                 <div className="h-16 w-20 shrink-0 overflow-hidden bg-[#eee]">
                   {a.image?.url ? <img src={a.image.url} alt="" className="h-full w-full object-cover" /> : null}
@@ -131,7 +135,13 @@ function Profile({ destination: d }: { destination: Destination }) {
   )
 }
 
-export function DestinationPreview({ destination }: { destination: Destination }) {
+export function DestinationPreview({
+  destination,
+  onAskAi,
+}: {
+  destination: Destination
+  onAskAi?: () => void
+}) {
   const [mode, setMode] = useState<'mobile' | 'desktop'>('desktop')
 
   return (
@@ -161,6 +171,7 @@ export function DestinationPreview({ destination }: { destination: Destination }
             Desktop view
           </button>
         </div>
+        {onAskAi ? <AskAiButton onClick={onAskAi} /> : null}
       </div>
 
       {mode === 'desktop' ? (

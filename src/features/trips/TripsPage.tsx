@@ -56,7 +56,7 @@ export function TripsPage() {
       <div className="flex h-full flex-col p-6">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-medium text-gray-900 dark:text-zinc-100">Trips</h1>
+            <h1 className="text-xl font-medium text-gray-900 dark:text-zinc-100">Itinerary</h1>
             <p className="text-sm text-gray-500 dark:text-zinc-400">Itineraries for your travellers</p>
           </div>
           <BaseButton onClick={() => setOpen(true)}>

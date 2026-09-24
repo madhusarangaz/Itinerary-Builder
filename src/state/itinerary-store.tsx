@@ -104,6 +104,7 @@ type Ctx = {
   duplicateDay: (id: string) => void
   removeDay: (id: string) => void
   addActivity: (dayId: string, type: ActivityType) => void
+  addFromMaster: (dayId: string, source: { activityId: string; title: string; description: string }) => void
   updateActivity: (dayId: string, activityId: string, patch: Partial<Activity>) => void
   removeActivity: (dayId: string, activityId: string) => void
   reorderActivities: (dayId: string, activities: Activity[]) => void
@@ -231,6 +232,29 @@ export function ItineraryProvider({ children }: { children: ReactNode }) {
     [trip.days, updateDay],
   )
 
+  const addFromMaster = useCallback(
+    (dayId: string, source: { activityId: string; title: string; description: string }) => {
+      const day = trip.days.find((d) => d.id === dayId)
+      if (!day || day.activities.some((a) => a.activityId === source.activityId)) return
+      updateDay(dayId, {
+        activities: [
+          ...day.activities,
+          {
+            id: uid('act'),
+            type: 'activity' as const,
+            title: source.title,
+            description: source.description,
+            activityId: source.activityId,
+            status: 'included' as const,
+            subActivities: [],
+            sortOrder: day.activities.length,
+          },
+        ],
+      })
+    },
+    [trip.days, updateDay],
+  )
+
   const updateActivity = useCallback(
     (dayId: string, activityId: string, p: Partial<Activity>) => {
       const day = trip.days.find((d) => d.id === dayId)
@@ -322,6 +346,7 @@ export function ItineraryProvider({ children }: { children: ReactNode }) {
       duplicateDay,
       removeDay,
       addActivity,
+      addFromMaster,
       updateActivity,
       removeActivity,
       reorderActivities,
@@ -343,6 +368,7 @@ export function ItineraryProvider({ children }: { children: ReactNode }) {
       duplicateDay,
       removeDay,
       addActivity,
+      addFromMaster,
       updateActivity,
       removeActivity,
       reorderActivities,

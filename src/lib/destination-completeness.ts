@@ -31,7 +31,7 @@ export function recommendedDestinationIssues(d: Destination) {
   if (d.climate.averageHighC == null || d.climate.averageLowC == null) missing.push('Add average temperatures')
   const air = d.airportConnections[0]
   if (!air || !air.distanceKm) missing.push('Add airport distance and travel time')
-  if (!d.activities.length) missing.push('Add at least one activity')
+  if (!d.activityIds.length) missing.push('Add at least one activity')
   if (!d.itineraryPoints.length) missing.push('Add at least one itinerary point')
   if (!d.travellerTips.length) missing.push('Add at least one traveller tip')
   return missing
@@ -48,7 +48,7 @@ export function destinationProgress(d: Destination) {
   if (d.gallery.filter((g) => g.url).length >= 3) filled += 1
   if (d.climate.averageHighC != null && d.climate.averageLowC != null) filled += 1
   if (d.airportConnections[0]?.distanceKm) filled += 1
-  if (d.activities.length) filled += 1
+  if (d.activityIds.length) filled += 1
   if (d.itineraryPoints.length) filled += 1
   if (d.travellerTips.length) filled += 1
   const percent = Math.round((filled / CHECKS) * 100)
@@ -80,7 +80,7 @@ export function destinationSectionStatus(d: Destination, id: DestinationSectionI
       return 'empty'
     }
     case 'activities':
-      return d.activities.length ? 'complete' : 'empty'
+      return d.activityIds.length ? 'complete' : 'empty'
     case 'itinerary':
       return d.itineraryPoints.length ? 'complete' : 'empty'
     case 'tips':

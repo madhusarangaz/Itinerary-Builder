@@ -2,7 +2,6 @@ import { photos } from './images'
 import { uid } from '../lib/ids'
 import type {
   Destination,
-  DestinationActivity,
   DestinationConnection,
   DestinationImage,
   ItineraryPoint,
@@ -46,7 +45,7 @@ export function emptyDestination(): Destination {
       },
     ],
     destinationConnections: [],
-    activities: [],
+    activityIds: [],
     itineraryPoints: [],
     travellerTips: [],
     status: 'draft',
@@ -62,40 +61,6 @@ const cover: DestinationImage = {
   isCover: true,
   sortOrder: 0,
   focalY: 40,
-}
-
-const rockActivity: DestinationActivity = {
-  id: 'act-sigiriya-rock',
-  name: 'Sigiriya Rock Fortress',
-  shortDescription:
-    'Climb the ancient rock fortress and explore its frescoes, landscaped gardens and panoramic summit views.',
-  image: emptyImage(photos.sigiriya, { id: 'img-act-rock', isCover: true }),
-  categories: ['Culture', 'Heritage'],
-  durationMinutes: 150,
-  recommendedTimes: ['Morning'],
-  masterType: 'standard',
-  cost: { currency: 'USD', type: 'per_person', amount: 30 },
-  difficulty: 'moderate',
-  suitableFor: ['Solo Travellers', 'Couples', 'Families', 'Groups'],
-  whatToBring: ['Comfortable shoes', 'Water', 'Sun protection'],
-  bookingRequired: true,
-  entranceFeeRequired: true,
-  sortOrder: 0,
-}
-
-const villageActivity: DestinationActivity = {
-  id: 'act-village',
-  name: 'Village Experience',
-  shortDescription: 'Enjoy a traditional village experience with local crafts, a bullock cart ride and a simple countryside meal.',
-  image: emptyImage(photos.tea, { id: 'img-act-village' }),
-  categories: ['Local Experience'],
-  durationMinutes: 240,
-  recommendedTimes: ['Afternoon'],
-  masterType: 'optional',
-  cost: { currency: 'USD', type: 'per_person', amount: 10 },
-  difficulty: 'easy',
-  suitableFor: ['Couples', 'Families', 'Groups'],
-  sortOrder: 1,
 }
 
 const morningPoint: ItineraryPoint = {
@@ -213,7 +178,7 @@ export const sampleSigiriya: Destination = {
     },
   ],
   destinationConnections: [kandyConn, nuwaraConn],
-  activities: [rockActivity, villageActivity],
+  activityIds: ['act-sigiriya-rock', 'act-village'],
   itineraryPoints: [morningPoint, afternoonPoint, eveningPoint],
   travellerTips: tips,
   status: 'active',
@@ -261,7 +226,7 @@ export const sampleKandy: Destination = {
       bidirectional: true,
     },
   ],
-  activities: [],
+  activityIds: [],
   itineraryPoints: [],
   travellerTips: [],
   status: 'active',
@@ -307,7 +272,7 @@ export const sampleNuwara: Destination = {
       bidirectional: true,
     },
   ],
-  activities: [],
+  activityIds: [],
   itineraryPoints: [],
   travellerTips: [],
   status: 'draft',
@@ -342,7 +307,7 @@ export const sampleMirissa: Destination = {
     },
   ],
   destinationConnections: [],
-  activities: [],
+  activityIds: [],
   itineraryPoints: [],
   travellerTips: [],
   status: 'draft',

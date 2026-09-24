@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
+import type { ReactNode } from 'react'
 import type { SaveStatus } from '../../types/itinerary'
-import { ThemeToggle } from '../../components/ui/ThemeToggle'
 
 export function BuilderHeader({
   saveStatus,
@@ -10,6 +10,7 @@ export function BuilderHeader({
   title = 'Create Itinerary',
   subtitle = 'Type: Custom tour',
   previewLabel = 'Show preview',
+  actions,
 }: {
   saveStatus: SaveStatus
   onClose: () => void
@@ -18,6 +19,7 @@ export function BuilderHeader({
   title?: string
   subtitle?: string
   previewLabel?: string
+  actions?: ReactNode
 }) {
   const label = saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Autosaved just now' : ''
   return (
@@ -28,8 +30,8 @@ export function BuilderHeader({
           <p className="text-sm text-gray-500 opacity-70 dark:text-gray-400">{subtitle}</p>
         </div>
         <div className="flex items-center gap-3">
+          {actions}
           <span className="hidden text-xs text-gray-400 sm:inline">{label}</span>
-          <ThemeToggle compact />
           {showPreviewToggle && (
             <button type="button" onClick={onShowPreview} className="text-sm text-gray-700 underline md:hidden dark:text-zinc-300">
               {previewLabel}

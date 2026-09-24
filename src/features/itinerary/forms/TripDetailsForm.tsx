@@ -4,6 +4,9 @@ import { mockCustomers } from '../../../data/sample-trip'
 import { addDays, formatLong } from '../../../lib/dates'
 import { uid } from '../../../lib/ids'
 import { useItinerary } from '../../../state/itinerary-store'
+import { SearchSelect } from '../../../components/ui/SearchSelect'
+import { useSuppliers } from '../../../state/supplier-store'
+import { useTransport } from '../../../state/transport-store'
 import { BaseButton } from '../../../components/ui/BaseButton'
 import { ImageUploader } from '../../../components/ui/ImageUploader'
 import { InputField } from '../../../components/ui/InputField'
@@ -13,6 +16,8 @@ const PRESET = ['Wi-Fi', 'Pool Access', '24/7 Concierge', 'VIP Excursions', 'Gou
 
 export function TripDetailsForm() {
   const { trip, patch } = useItinerary()
+  const { transports } = useTransport()
+  const { suppliers } = useSuppliers()
   const [query, setQuery] = useState(trip.customer)
   const [open, setOpen] = useState(false)
   const [customFacility, setCustomFacility] = useState('')
@@ -89,6 +94,77 @@ export function TripDetailsForm() {
             </div>
           ) : null}
         </div>
+        <SearchSelect
+          label="Transport"
+          optional
+          placeholder="Search transport types…"
+          value={trip.transportId || trip.transportName || ''}
+          options={transports.filter((row) => row.status === 'active').map((row) => ({ value: row.id, label: row.displayName || row.vehicleCategory, hint: `${row.capacity.minAdults ?? 1}–${row.capacity.maxAdults} pax` }))}
+          onChange={(value) => {
+            const match = transports.find((row) => row.id === value)
+            const party = trip.adults
+            const fits = match ? party <= match.capacity.maxAdults && party >= (match.capacity.minAdults ?? 1) : true
+            patch({
+              transportId: match?.id,
+              transportName: match?.displayName || match?.vehicleCategory,
+              supplierId: undefined,
+              supplierName: undefined,
+              vehicleRegistration: undefined,
+              driverName: undefined,
+            })
+            if (match && !fits) {
+              /* suggestion only — coordinator can still keep this vehicle */
+            }
+          }}
+        />
+        {trip.transportId ? (
+          <p className="mb-3 -mt-2 text-[11px] text-gray-400">
+            Suggested for {trip.adults} adults:{' '}
+            {transports
+              .filter((row) => row.status === 'active' && trip.adults <= row.capacity.maxAdults && trip.adults >= (row.capacity.minAdults ?? 1))
+              .slice(0, 3)
+              .map((row) => row.displayName || row.vehicleCategory)
+              .join(', ') || 'none of the active types match this party size'}
+          </p>
+        ) : null}
+        {trip.transportName ? (
+          <>
+            <SearchSelect
+              label="Supplier"
+              optional
+              placeholder="Optional — not required to quote"
+              value={trip.supplierId || ''}
+              options={suppliers
+                .filter((supplier) => supplier.status === 'active' && supplier.type === 'vehicle_fleet')
+                .filter((supplier) => supplier.vehicleInventory.some((group) => group.transportId === trip.transportId || group.transportName === trip.transportName))
+                .map((supplier) => ({ value: supplier.id, label: supplier.name }))}
+              onChange={(value) => {
+                const match = suppliers.find((supplier) => supplier.id === value)
+                patch({ supplierId: match?.id, supplierName: match?.name, vehicleRegistration: undefined, driverName: undefined })
+              }}
+            />
+            {trip.supplierId ? (
+              <div className="grid grid-cols-2 gap-4">
+                <SearchSelect
+                  label="Vehicle"
+                  optional
+                  value={trip.vehicleRegistration || ''}
+                  options={(suppliers.find((supplier) => supplier.id === trip.supplierId)?.vehicleInventory ?? [])
+                    .filter((group) => group.transportId === trip.transportId || group.transportName === trip.transportName)
+                    .flatMap((group) => group.vehicles.filter((unit) => unit.registrationNumber.trim()).map((unit) => ({ value: unit.registrationNumber, label: unit.registrationNumber, hint: `${group.model} · ${group.manufactureYear ?? ''}` })))}
+                  onChange={(vehicleRegistration) => patch({ vehicleRegistration })}
+                />
+                <SearchSelect
+                  label="Driver"
+                  optional
+                  value={trip.driverName || ''}
+                  options={(suppliers.find((supplier) => supplier.id === trip.supplierId)?.drivers ?? []).filter((driver) => driver.status === 'active' && driver.name.trim()).map((driver) => ({ value: driver.name, label: driver.name }))}
+                  onChange={(driverName) => patch({ driverName })}
+                />
+              </div>
+            ) : null}
+          </>
+        ) : null}
         <div className="grid grid-cols-2 gap-4">
           <InputField
             label="Start Date"

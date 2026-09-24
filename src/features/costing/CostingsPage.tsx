@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { Plus } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AppShell } from '../../components/layout/AppShell'
@@ -8,6 +8,7 @@ import { calculatePricing, formatMoney } from '../../lib/costing-calc'
 import { COSTING_STATUS_LABELS } from '../../lib/costing-completeness'
 import { formatShort } from '../../lib/dates'
 import { emptyCosting } from '../../data/costing-sample'
+import { useToast } from '../../components/ui/Toast'
 import { useCosting } from '../../state/costing-store'
 import { CostingBuilder } from './CostingBuilder'
 
@@ -24,7 +25,8 @@ const panel = {
 }
 
 export function CostingsPage() {
-  const { costings, setActiveId, addCosting } = useCosting()
+  const { costings, setActiveId, addCosting, removeCosting } = useCosting()
+  const { notify } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(true)
   const [mobileTab, setMobileTab] = useState<'edit' | 'summary'>('edit')
@@ -71,6 +73,7 @@ export function CostingsPage() {
                 <th className="px-4 py-3 font-medium">Dates</th>
                 <th className="px-4 py-3 font-medium">Package</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -98,6 +101,22 @@ export function CostingsPage() {
                       <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-white/10 dark:text-zinc-200">
                         {COSTING_STATUS_LABELS[c.status]}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 text-xs text-red-600"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const label = c.referenceNo || c.clientName || 'this costing'
+                          if (!window.confirm(`Delete "${label}"?`)) return
+                          removeCosting(c.id)
+                          setOpen(false)
+                          notify('Costing deleted.')
+                        }}
+                      >
+                        <Trash2 size={12} /> Delete
+                      </button>
                     </td>
                   </tr>
                 )

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { Archive, Copy, MapPin, Pencil, Plus, Search } from 'lucide-react'
+import { Archive, Copy, MapPin, Pencil, Plus, Search, Sparkles, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { AppShell } from '../../components/layout/AppShell'
 import { BaseButton } from '../../components/ui/BaseButton'
@@ -8,6 +8,7 @@ import { EXPERIENCE_TYPES, PROVINCES, formatStay } from '../../data/destination-
 import { emptyDestination } from '../../data/destination-sample'
 import { DESTINATION_STATUS_LABELS } from '../../lib/destination-completeness'
 import { cn } from '../../lib/cn'
+import { useToast } from '../../components/ui/Toast'
 import { useDestinations } from '../../state/destination-store'
 import type { DestinationStatus } from '../../types/destination'
 import { DestinationBuilder } from './DestinationBuilder'
@@ -26,8 +27,10 @@ const panel = {
 }
 
 export function DestinationsPage() {
-  const { destinations, setActiveId, addDestination, duplicateDestination, archiveDestination } = useDestinations()
+  const { destinations, setActiveId, addDestination, duplicateDestination, archiveDestination, removeDestination } = useDestinations()
+  const { notify } = useToast()
   const [open, setOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
   const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit')
   const [q, setQ] = useState('')
   const [region, setRegion] = useState('')
@@ -48,7 +51,13 @@ export function DestinationsPage() {
   function openDest(id: string) {
     setActiveId(id)
     setMobileTab('edit')
+    setAiOpen(false)
     setOpen(true)
+  }
+
+  function closeBuilder() {
+    setAiOpen(false)
+    setOpen(false)
   }
 
   return (
@@ -62,6 +71,7 @@ export function DestinationsPage() {
           <BaseButton
             onClick={() => {
               addDestination(emptyDestination())
+              setAiOpen(false)
               setOpen(true)
             }}
           >
@@ -143,7 +153,7 @@ export function DestinationsPage() {
                     {d.experienceTypes.slice(0, 3).join(' · ') || 'No tags yet'}
                   </p>
                   <p className="mt-1 text-[11px] text-gray-500">
-                    {formatStay(d)} · {d.activities.length} {d.activities.length === 1 ? 'activity' : 'activities'} · {formatUpdated(d.updatedAt)}
+                    {formatStay(d)} · {d.activityIds.length} {d.activityIds.length === 1 ? 'activity' : 'activities'} · {formatUpdated(d.updatedAt)}
                   </p>
                 </div>
               </div>
@@ -179,6 +189,20 @@ export function DestinationsPage() {
                 >
                   <Archive size={12} /> {d.status === 'archived' ? 'Restore' : 'Archive'}
                 </button>
+                <button
+                  type="button"
+                  className="flex flex-1 items-center justify-center gap-1 border-l border-gray-100 py-2 text-xs text-red-600 hover:bg-red-50 dark:border-[#2C2A2A] dark:hover:bg-red-950/30"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const label = d.name || 'this destination'
+                    if (!window.confirm(`Delete "${label}"? This removes it from the destination list.`)) return
+                    removeDestination(d.id)
+                    setOpen(false)
+                    notify('Destination deleted.')
+                  }}
+                >
+                  <Trash2 size={12} /> Delete
+                </button>
               </div>
             </article>
           ))}
@@ -197,28 +221,50 @@ export function DestinationsPage() {
             exit="exit"
             className="fixed inset-0 z-40 h-full bg-black/60 backdrop-blur-sm"
             onClick={(e) => {
-              if (e.target === e.currentTarget) setOpen(false)
+              if (e.target === e.currentTarget) closeBuilder()
             }}
           >
             <motion.div
               variants={panel}
-              className="fixed top-8 right-5 bottom-0 left-2 z-50 flex flex-col overflow-hidden rounded-t-xl bg-white shadow-lg md:left-[15%] dark:bg-[#1E1E20]"
+              className={cn(
+                'fixed top-8 right-5 bottom-0 z-50 flex flex-col overflow-visible bg-transparent transition-[left] duration-300 ease-out',
+                aiOpen ? 'left-2 md:left-[360px]' : 'left-2 md:left-[15%]',
+              )}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex gap-2 border-b border-gray-100 px-4 py-2 md:hidden">
-                {(['edit', 'preview'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setMobileTab(tab)}
-                    className={`rounded-full px-3 py-1 text-sm capitalize ${mobileTab === tab ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-              <div className="min-h-0 flex-1">
-                <DestinationBuilder onClose={() => setOpen(false)} mobileTab={mobileTab} onShowEditor={() => setMobileTab('edit')} />
+              {!aiOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setAiOpen(true)}
+                  className="absolute bottom-12 left-0 z-[60] hidden -translate-x-full items-center gap-1.5 rounded-l-xl border border-r-0 border-gray-200 bg-white py-2.5 pr-2.5 pl-3 text-xs font-medium text-gray-800 shadow-md transition hover:bg-gray-50 md:inline-flex dark:border-[#2C2A2A] dark:bg-[#242528] dark:text-zinc-100 dark:hover:bg-white/5"
+                  aria-label="Ask AI"
+                >
+                  <Sparkles size={14} />
+                  AI
+                </button>
+              ) : null}
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-xl bg-white shadow-lg dark:bg-[#1E1E20]">
+                <div className="flex gap-2 border-b border-gray-100 px-4 py-2 md:hidden">
+                  {(['edit', 'preview'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setMobileTab(tab)}
+                      className={`rounded-full px-3 py-1 text-sm capitalize ${mobileTab === tab ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+                <div className="min-h-0 flex-1">
+                  <DestinationBuilder
+                    onClose={closeBuilder}
+                    mobileTab={mobileTab}
+                    onShowEditor={() => setMobileTab('edit')}
+                    aiOpen={aiOpen}
+                    onAiOpenChange={setAiOpen}
+                  />
+                </div>
               </div>
             </motion.div>
           </motion.div>

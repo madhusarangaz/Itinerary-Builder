@@ -67,6 +67,11 @@ export function calculateDriverGuideCost(d: DriverGuideCost, exchangeRate: numbe
 }
 
 export function calculateActivityCost(activity: ActivityCost, numberOfPeople: number) {
+  if (activity.adultQty != null || activity.childQty != null) {
+    const adult = activity.overrideAdultRate ?? activity.masterAdultRate ?? activity.costPerPerson ?? 0
+    const child = activity.overrideChildRate ?? activity.masterChildRate ?? 0
+    return adult * (activity.adultQty ?? 0) + child * (activity.childQty ?? 0)
+  }
   return (activity.costPerPerson || 0) * (activity.quantity || 0) * (numberOfPeople || 0)
 }
 

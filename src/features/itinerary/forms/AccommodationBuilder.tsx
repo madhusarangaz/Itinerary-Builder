@@ -5,9 +5,13 @@ import { BaseSelect } from '../../../components/ui/BaseSelect'
 import { ImageUploader } from '../../../components/ui/ImageUploader'
 import { InputField } from '../../../components/ui/InputField'
 import { Modal } from '../../../components/ui/Modal'
-import { TextAreaField } from '../../../components/ui/TextAreaField'
+import { useToast } from '../../../components/ui/Toast'
+import { emptyHotel } from '../../../data/hotel-sample'
+import { newRoom } from '../../../lib/hotel'
+import { useDestinations } from '../../../state/destination-store'
+import { useHotelMaster } from '../../../state/hotel-store'
 import { useItinerary } from '../../../state/itinerary-store'
-import type { Hotel } from '../../../types/itinerary'
+import type { HotelRecord } from '../../../types/hotel'
 
 function HotelSelector({
   value,
@@ -16,136 +20,91 @@ function HotelSelector({
 }: {
   value: string
   destination: string
-  onPick: (hotel: Hotel) => void
+  onPick: (hotel: HotelRecord) => void
 }) {
-  const { hotels, addHotel } = useItinerary()
+  const { hotels, addHotel } = useHotelMaster()
+  const { destinations } = useDestinations()
+  const { notify } = useToast()
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [modal, setModal] = useState(false)
-  const [draft, setDraft] = useState({
-    name: '',
-    destination,
-    starRating: 5,
-    mealPlans: 'BB, HB',
-    image: '',
-    notes: '',
-  })
+  const [draft, setDraft] = useState({ name: '', starCategory: 4, address: '', roomName: 'Deluxe' })
+  const place = destinations.find((row) => row.name.toLowerCase() === destination.trim().toLowerCase())
 
   const list = useMemo(() => {
     const term = q.toLowerCase()
-    return hotels.filter(
-      (h) =>
-        h.name.toLowerCase().includes(term) ||
-        h.destination.toLowerCase().includes(term) ||
-        (destination && h.destination.toLowerCase().includes(destination.toLowerCase())),
-    )
-  }, [hotels, q, destination])
+    return hotels
+      .filter((hotel) => hotel.status !== 'inactive')
+      .filter((hotel) => {
+        if (!destination.trim()) return true
+        return hotel.destinationId === place?.id || (hotel.destinationName ?? '').toLowerCase() === destination.trim().toLowerCase()
+      })
+      .filter((hotel) => !term || hotel.name.toLowerCase().includes(term))
+  }, [hotels, q, destination, place?.id])
 
-  const selected = hotels.find((h) => h.id === value)
+  const selected = hotels.find((hotel) => hotel.id === value)
 
   return (
     <div className="relative mb-3">
       <InputField
         label="Hotel"
-        placeholder="Search hotel..."
+        placeholder={destination ? `Search ${destination} hotels...` : 'Search hotel...'}
         startIcon={<Search size={16} />}
-        value={open ? q : selected?.name ?? q}
-        onFocus={() => {
-          setOpen(true)
-          setQ('')
-        }}
-        onChange={(e) => {
-          setQ(e.target.value)
-          setOpen(true)
-        }}
+        value={open ? q : selected?.name ?? ''}
+        onFocus={() => { setOpen(true); setQ('') }}
+        onChange={(e) => { setQ(e.target.value); setOpen(true) }}
       />
       {open && (
         <div className="absolute z-30 max-h-56 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
-          {list.map((h) => (
-            <button
-              key={h.id}
-              type="button"
-              className="block w-full px-3 py-2 text-left text-sm text-gray-900 hover:bg-gray-50 dark:text-zinc-100 dark:hover:bg-zinc-700"
-              onClick={() => {
-                onPick(h)
-                setOpen(false)
-                setQ('')
-              }}
-            >
-              <div className="font-medium">{h.name}</div>
-              <div className="text-xs text-gray-500 dark:text-zinc-400">
-                {h.destination} • {h.starRating} Star
-              </div>
+          {list.map((hotel) => (
+            <button key={hotel.id} type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-zinc-700" onClick={() => { onPick(hotel); setOpen(false); setQ('') }}>
+              <div className="font-medium text-gray-900 dark:text-zinc-100">{hotel.name}</div>
+              <div className="text-xs text-gray-500">{hotel.destinationName || 'No destination'} · {hotel.starCategory ? `${hotel.starCategory} Star` : 'Stars not set'}</div>
             </button>
           ))}
-          {q && (
-            <button
-              type="button"
-              className="block w-full px-3 py-2 text-left text-sm text-blue-600 dark:text-blue-400"
-              onClick={() => {
-                setDraft((d) => ({ ...d, name: q, destination }))
-                setModal(true)
-              }}
-            >
-              + Add “{q}” as new hotel
-            </button>
-          )}
+          {list.length === 0 ? <p className="px-3 py-2 text-sm text-gray-400">No hotels for this destination yet.</p> : null}
+          <button type="button" className="block w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-zinc-200" onClick={() => { setDraft((d) => ({ ...d, name: q })); setModal(true) }}>
+            + Add new hotel
+          </button>
         </div>
       )}
       <Modal
         open={modal}
         title="Add hotel"
-        subtitle="Saved to your hotel library"
+        subtitle="Saved to Hotel Master and selected on this stay."
         onClose={() => setModal(false)}
         footer={
           <>
-            <BaseButton variant="secondary" onClick={() => setModal(false)}>
-              Cancel
-            </BaseButton>
+            <BaseButton variant="secondary" onClick={() => setModal(false)}>Cancel</BaseButton>
             <BaseButton
+              disabled={!draft.name.trim()}
               onClick={() => {
-                const hotel = addHotel({
-                  name: draft.name,
-                  destination: draft.destination,
-                  starRating: draft.starRating,
-                  mealPlans: draft.mealPlans.split(',').map((s) => s.trim()).filter(Boolean),
-                  image: draft.image,
-                  notes: draft.notes,
+                const created = addHotel({
+                  ...emptyHotel(),
+                  name: draft.name.trim(),
+                  destinationId: place?.id,
+                  destinationName: destination || place?.name || '',
+                  starCategory: draft.starCategory as 1 | 2 | 3 | 4 | 5,
+                  address: draft.address || destination,
+                  rooms: [newRoom({ name: draft.roomName || 'Deluxe', numberOfRooms: 1 })],
+                  status: 'active',
                 })
-                onPick(hotel)
+                onPick(created)
+                notify('Hotel added successfully.')
                 setModal(false)
                 setOpen(false)
               }}
             >
-              Save hotel
+              Save & select
             </BaseButton>
           </>
         }
       >
         <InputField label="Hotel name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
-        <InputField
-          label="Destination"
-          value={draft.destination}
-          onChange={(e) => setDraft({ ...draft, destination: e.target.value })}
-        />
-        <BaseSelect
-          label="Star rating"
-          value={String(draft.starRating)}
-          onChange={(e) => setDraft({ ...draft, starRating: Number(e.target.value) })}
-          options={[3, 4, 5].map((n) => ({ value: String(n), label: `${n} Star` }))}
-        />
-        <InputField
-          label="Meal plans"
-          value={draft.mealPlans}
-          onChange={(e) => setDraft({ ...draft, mealPlans: e.target.value })}
-        />
-        <ImageUploader value={draft.image} onChange={(url) => setDraft({ ...draft, image: url })} />
-        <TextAreaField
-          label="Internal notes"
-          optional
-          value={draft.notes}
-          onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
-        />
+        <InputField label="Destination" value={destination} onChange={() => undefined} />
+        <BaseSelect label="Star category" value={String(draft.starCategory)} onChange={(e) => setDraft({ ...draft, starCategory: Number(e.target.value) })} options={[3, 4, 5].map((n) => ({ value: String(n), label: `${n} Star` }))} />
+        <InputField label="Address" value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} />
+        <InputField label="Room category" value={draft.roomName} onChange={(e) => setDraft({ ...draft, roomName: e.target.value })} />
       </Modal>
     </div>
   )
@@ -159,6 +118,7 @@ const MEAL = [
 
 export function AccommodationBuilder() {
   const { trip, updateAccommodation, addAccommodation, removeAccommodation } = useItinerary()
+  const { hotels } = useHotelMaster()
 
   return (
     <div id="form-stay" className="scroll-mt-3 space-y-3 px-6 py-4">
@@ -182,13 +142,26 @@ export function AccommodationBuilder() {
               updateAccommodation(acc.id, {
                 hotelId: hotel.id,
                 hotelName: hotel.name,
-                destination: acc.destination || hotel.destination,
-                starCategory: hotel.starRating,
-                image: hotel.image,
-                mealPlan: hotel.mealPlans[0] ?? acc.mealPlan,
+                destination: acc.destination || hotel.destinationName,
+                starCategory: hotel.starCategory ?? acc.starCategory,
+                image: hotel.images.find((image) => image.isCover)?.url || hotel.images[0]?.url || acc.image,
+                roomCategoryId: hotel.rooms[0]?.id,
+                roomCategoryName: hotel.rooms[0]?.name,
               })
             }
           />
+          {acc.hotelId ? (
+            <BaseSelect
+              label="Room category"
+              value={acc.roomCategoryId ?? ''}
+              placeholder="Select a room"
+              options={(hotels.find((hotel) => hotel.id === acc.hotelId)?.rooms ?? []).filter((room) => room.name.trim()).map((room) => ({ value: room.id, label: room.name }))}
+              onChange={(e) => {
+                const room = hotels.find((hotel) => hotel.id === acc.hotelId)?.rooms.find((item) => item.id === e.target.value)
+                updateAccommodation(acc.id, { roomCategoryId: room?.id, roomCategoryName: room?.name })
+              }}
+            />
+          ) : null}
           {!acc.hotelId && <p className="mb-2 text-xs text-gray-400">○ Select hotel</p>}
           <div className="grid grid-cols-2 gap-4">
             <InputField
