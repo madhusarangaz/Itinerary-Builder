@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { AppShell } from '../../components/layout/AppShell'
 import { BaseButton } from '../../components/ui/BaseButton'
+import { cn } from '../../lib/cn'
 import { ItineraryBuilder } from '../itinerary/ItineraryBuilder'
 import { useItinerary } from '../../state/itinerary-store'
 import { formatShort } from '../../lib/dates'
@@ -22,7 +23,7 @@ const panel = {
 export function TripsPage() {
   const { trip } = useItinerary()
   const [open, setOpen] = useState(true)
-  const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit')
+  const [aiOpen, setAiOpen] = useState(false)
 
   const rows = [
     {
@@ -110,27 +111,14 @@ export function TripsPage() {
           >
             <motion.div
               variants={panel}
-              className="fixed top-8 right-5 bottom-0 left-2 z-50 flex flex-col overflow-hidden rounded-t-xl bg-white shadow-lg md:left-[15%] dark:bg-[#1E1E20]"
+              className={cn(
+                'fixed top-8 right-5 bottom-0 z-50 flex flex-col overflow-hidden rounded-t-xl bg-white shadow-lg transition-[left] duration-300 ease-out dark:bg-[#1E1E20]',
+                aiOpen ? 'left-2 md:left-[360px]' : 'left-2 md:left-[15%]',
+              )}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex gap-2 border-b border-gray-100 px-4 py-2 md:hidden">
-                {(['edit', 'preview'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setMobileTab(tab)}
-                    className={`rounded-full px-3 py-1 text-sm capitalize ${mobileTab === tab ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
               <div className="min-h-0 flex-1">
-                <ItineraryBuilder
-                  onClose={() => setOpen(false)}
-                  mobileTab={mobileTab}
-                  onShowEditor={() => setMobileTab('edit')}
-                />
+                <ItineraryBuilder onClose={() => { setOpen(false); setAiOpen(false) }} onAiOpenChange={setAiOpen} />
               </div>
             </motion.div>
           </motion.div>

@@ -8,9 +8,10 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ChevronDown, Copy, GripVertical, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { ChevronDown, GripVertical, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { BaseButton } from '../../../components/ui/BaseButton'
+import { ConfirmDialog } from '../../../components/ui/ConfirmDialog'
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { PLACEMENT_LABEL, routeSummary } from '../../../data/activity-catalog'
@@ -30,10 +31,8 @@ import {
   emptyMeals,
   emptyPickup,
   emptyTravel,
-  mealsFilled,
   STATUS_OPTIONS,
   TRANSPORT_OPTIONS,
-  travelFilled,
   travellerFilled,
 } from '../../../lib/day-glance'
 import { useItinerary } from '../../../state/itinerary-store'
@@ -652,8 +651,8 @@ function ActivitySuggestions({
   )
 }
 
-function DayCard({ day, open, onToggle }: { day: Day; open: boolean; onToggle: () => void }) {
-  const { updateDay, duplicateDay, removeDay, addActivity, addFromMaster, updateActivity, removeActivity, reorderActivities, addSubActivity } =
+function DayWorkspace({ day }: { day: Day }) {
+  const { updateDay, addActivity, addFromMaster, updateActivity, removeActivity, reorderActivities, addSubActivity } =
     useItinerary()
   const { activities: master } = useActivities()
   const { destinations } = useDestinations()
@@ -673,47 +672,23 @@ function DayCard({ day, open, onToggle }: { day: Day; open: boolean; onToggle: (
   }
 
   return (
-    <div id={`form-day-${day.id}`} className="scroll-mt-3 overflow-hidden rounded-xl border border-gray-100 dark:border-[#2C2A2A]">
-      <div className="flex w-full items-start">
-        <button type="button" onClick={onToggle} className="flex min-w-0 flex-1 items-start px-4 py-3 text-left">
+    <div id={`form-day-${day.id}`} className="flex min-h-0 min-w-0 flex-1 flex-col xl:flex-row">
+      <div className="min-h-0 w-full overflow-y-auto border-b border-gray-100 px-5 py-4 xl:w-[400px] xl:shrink-0 xl:border-r xl:border-b-0 dark:border-[#2C2A2A]">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-zinc-100">
-              DAY {String(day.dayNumber).padStart(2, '0')}
-              {missing.length === 0 ? (
-                <span className="text-emerald-600">✓</span>
-              ) : (
-                <span className="text-xs font-normal text-gray-400">{missing.length} details remaining</span>
-              )}
-            </div>
-            <div className="text-xs text-gray-500 dark:text-zinc-400">{formatShort(day.date)}</div>
-            <div className="mt-1 text-sm tracking-wide text-gray-900 uppercase dark:text-zinc-100">{day.destination || 'Add destination'}</div>
-            <div className="text-xs text-gray-400">
-              {day.activities.length} {day.activities.length === 1 ? 'item' : 'items'} {day.image ? '• Image added' : ''}
-              {travelFilled(day.travel) || mealsFilled(day.meals) || day.hotelName?.trim() || day.tip?.trim() ? ' • Traveller info' : ''}
-            </div>
+            <p className="text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase dark:text-zinc-500">
+              Day {String(day.dayNumber).padStart(2, '0')}
+            </p>
+            <h3 className="mt-1 text-base font-semibold text-gray-900 dark:text-white">{day.destination || 'Add destination'}</h3>
+            <p className="text-xs text-gray-400">{formatLong(day.date)}</p>
           </div>
-        </button>
-        <div className="flex items-center gap-1 pr-3 pt-3">
-          <button
-            type="button"
-            aria-label={`Delete day ${String(day.dayNumber).padStart(2, '0')}`}
-            className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
-            onClick={() => {
-              const label = `Day ${String(day.dayNumber).padStart(2, '0')}`
-              if (!window.confirm(`Delete ${label}?`)) return
-              removeDay(day.id)
-            }}
-          >
-            <Trash2 size={14} />
-          </button>
-          <button type="button" onClick={onToggle} aria-label={open ? 'Collapse day' : 'Expand day'} className="rounded p-1 text-gray-400">
-            <ChevronDown size={16} className={`transition ${open ? 'rotate-180' : ''}`} />
-          </button>
+          {missing.length === 0 ? (
+            <span className="text-sm text-emerald-600">✓</span>
+          ) : (
+            <span className="text-xs text-gray-400">{missing.length} remaining</span>
+          )}
         </div>
-      </div>
-      {open && (
-        <div className="border-t border-gray-100 px-4 py-3 dark:border-[#2C2A2A]">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col">
             <SearchSelect
               label="Destination"
               placeholder="Search destinations…"
@@ -726,127 +701,182 @@ function DayCard({ day, open, onToggle }: { day: Day; open: boolean; onToggle: (
             />
             <InputField label="Day title" value={day.title} onChange={(e) => updateDay(day.id, { title: e.target.value })} />
           </div>
-          <p className="mb-2 text-xs text-gray-400">{formatLong(day.date)}</p>
           <ImageUploader
             label="Upload destination image"
             className="mb-2"
-            aspect="h-[250px]"
+            aspect="h-[220px]"
             value={day.image}
             onChange={(url) => updateDay(day.id, { image: url })}
             onRemove={() => updateDay(day.id, { image: '' })}
           />
-          <div className="flex flex-wrap gap-2">
-            <BaseButton size="sm" variant="secondary" onClick={() => setPickerOpen(true)}>
-              + Activity
-            </BaseButton>
-            <BaseButton size="sm" variant="secondary" onClick={() => addActivity(day.id, 'transfer')}>
-              + Transfer
-            </BaseButton>
-            <BaseButton size="sm" variant="secondary" onClick={() => addActivity(day.id, 'meal')}>
-              + Meal
-            </BaseButton>
-            <BaseButton size="sm" variant="secondary" onClick={() => setHotelPickerOpen(true)}>
-              + Hotel
-            </BaseButton>
-            <BaseButton size="sm" variant="secondary" onClick={() => addActivity(day.id, 'note')}>
-              + Note
-            </BaseButton>
-          </div>
-          <ActivityPicker
-            day={day}
-            master={master}
-            open={pickerOpen}
-            onClose={() => setPickerOpen(false)}
-            onAdd={(source) => addFromMaster(day.id, source)}
-            onCustom={() => addActivity(day.id, 'activity')}
-          />
-          <HotelPicker
-            day={day}
-            hotels={hotels}
-            open={hotelPickerOpen}
-            onClose={() => setHotelPickerOpen(false)}
-            onAdd={(hotel) => {
-              updateDay(day.id, {
-                activities: [
-                  ...day.activities,
-                  {
-                    id: uid('act'),
-                    type: 'hotel',
-                    title: hotel.name,
-                    description: '',
-                    subActivities: [],
-                    sortOrder: day.activities.length,
-                  },
-                ],
-              })
-            }}
-            onCustom={() => addActivity(day.id, 'hotel')}
-          />
-          <ActivitySuggestions day={day} master={master} onAdd={(source) => addFromMaster(day.id, source)} />
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <SortableContext items={day.activities.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-              <div className="mt-3 space-y-2">
-                {day.activities.map((activity) => (
-                  <SortableActivity
-                    key={activity.id}
-                    activity={activity}
-                    onChange={(p) => updateActivity(day.id, activity.id, p)}
-                    onRemove={() => removeActivity(day.id, activity.id)}
-                    onAddSub={() => addSubActivity(day.id, activity.id)}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
           <TravellerInfo day={day} />
-          <div className="mt-4 flex justify-between">
-            <BaseButton size="sm" variant="secondary" onClick={() => duplicateDay(day.id)}>
-              <Copy size={14} /> Duplicate day
-            </BaseButton>
-            <BaseButton size="sm" variant="danger" onClick={() => removeDay(day.id)}>
-              <Trash2 size={14} /> Delete day
-            </BaseButton>
-          </div>
+      </div>
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-5 py-4">
+        <p className="mb-3 text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase dark:text-zinc-500">Activities</p>
+        <div className="flex flex-wrap gap-2">
+          <BaseButton size="sm" variant="secondary" onClick={() => setPickerOpen(true)}>
+            + Activity
+          </BaseButton>
+          <BaseButton size="sm" variant="secondary" onClick={() => addActivity(day.id, 'transfer')}>
+            + Transfer
+          </BaseButton>
+          <BaseButton size="sm" variant="secondary" onClick={() => addActivity(day.id, 'meal')}>
+            + Meal
+          </BaseButton>
+          <BaseButton size="sm" variant="secondary" onClick={() => setHotelPickerOpen(true)}>
+            + Hotel
+          </BaseButton>
+          <BaseButton size="sm" variant="secondary" onClick={() => addActivity(day.id, 'note')}>
+            + Note
+          </BaseButton>
         </div>
-      )}
+        <ActivityPicker
+          day={day}
+          master={master}
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          onAdd={(source) => addFromMaster(day.id, source)}
+          onCustom={() => addActivity(day.id, 'activity')}
+        />
+        <HotelPicker
+          day={day}
+          hotels={hotels}
+          open={hotelPickerOpen}
+          onClose={() => setHotelPickerOpen(false)}
+          onAdd={(hotel) => {
+            updateDay(day.id, {
+              activities: [
+                ...day.activities,
+                {
+                  id: uid('act'),
+                  type: 'hotel',
+                  title: hotel.name,
+                  description: '',
+                  subActivities: [],
+                  sortOrder: day.activities.length,
+                },
+              ],
+            })
+          }}
+          onCustom={() => addActivity(day.id, 'hotel')}
+        />
+        <ActivitySuggestions day={day} master={master} onAdd={(source) => addFromMaster(day.id, source)} />
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext items={day.activities.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+            <div className="mt-3 space-y-2">
+              {day.activities.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400 dark:border-[#2C2A2A]">
+                  Nothing on this day yet.
+                </p>
+              ) : null}
+              {day.activities.map((activity) => (
+                <SortableActivity
+                  key={activity.id}
+                  activity={activity}
+                  onChange={(p) => updateActivity(day.id, activity.id, p)}
+                  onRemove={() => removeActivity(day.id, activity.id)}
+                  onAddSub={() => addSubActivity(day.id, activity.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
     </div>
   )
 }
 
 export function DayBuilder({ focusDayId }: { focusDayId?: string }) {
-  const { trip, addDay } = useItinerary()
+  const { trip, addDay, removeDay } = useItinerary()
   const [openId, setOpenId] = useState<string | null>(focusDayId ?? trip.days[0]?.id ?? null)
+  const [dayPending, setDayPending] = useState<{ id: string; label: string } | null>(null)
 
   useEffect(() => {
-    if (!focusDayId) return
-    setOpenId(focusDayId)
+    if (focusDayId) setOpenId(focusDayId)
   }, [focusDayId])
 
+  useEffect(() => {
+    if (openId && trip.days.some((day) => day.id === openId)) return
+    setOpenId(trip.days[0]?.id ?? null)
+  }, [trip.days, openId])
+
+  const selected = trip.days.find((day) => day.id === openId) ?? null
+
   return (
-    <div className="space-y-3 px-6 py-4">
-      <h3 className="text-base font-semibold text-gray-900 dark:text-white">Day-by-day</h3>
-      {trip.days.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center">
-          <p className="font-medium">No itinerary days yet</p>
-          <p className="mt-1 text-sm text-gray-500">Start building your customer’s journey.</p>
-          <BaseButton className="mt-4" onClick={addDay}>
-            <Plus size={14} /> Add first day
-          </BaseButton>
+    <div className="flex h-full min-h-0">
+      <div className="flex w-[220px] shrink-0 flex-col border-r border-gray-100 dark:border-[#2C2A2A]">
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <p className="text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase dark:text-zinc-500">Days</p>
+          <button
+            type="button"
+            onClick={addDay}
+            className="inline-flex items-center gap-1 text-xs font-medium text-gray-700 hover:text-gray-950 dark:text-zinc-200 dark:hover:text-white"
+          >
+            <Plus size={13} /> Add
+          </button>
         </div>
+        <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-4">
+          {trip.days.length === 0 ? (
+            <div className="px-2 py-6 text-center">
+              <p className="text-sm font-medium text-gray-900 dark:text-zinc-100">No days yet</p>
+              <p className="mt-1 text-xs text-gray-500">Start the journey.</p>
+              <BaseButton className="mt-3" size="sm" onClick={addDay}>
+                <Plus size={14} /> Add first day
+              </BaseButton>
+            </div>
+          ) : (
+            trip.days.map((day) => {
+              const selectedDay = day.id === openId
+              const count = day.activities.length
+              return (
+                <div
+                  key={day.id}
+                  className={`flex items-start rounded-lg ${selectedDay ? 'bg-gray-900 text-white dark:bg-[#7A3714]' : 'hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                >
+                  <button type="button" onClick={() => setOpenId(day.id)} className="min-w-0 flex-1 px-3 py-2.5 text-left">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-[11px] tracking-wide ${selectedDay ? 'text-white/70' : 'text-gray-400'}`}>
+                        DAY {String(day.dayNumber).padStart(2, '0')}
+                      </span>
+                      <span className={`text-[11px] ${selectedDay ? 'text-white/60' : 'text-gray-400'}`}>{formatShort(day.date)}</span>
+                    </div>
+                    <div className={`mt-0.5 truncate text-sm ${selectedDay ? 'text-white' : 'text-gray-900 dark:text-zinc-100'}`}>
+                      {day.destination || 'Add destination'}
+                    </div>
+                    <div className={`truncate text-xs ${selectedDay ? 'text-white/70' : 'text-gray-400'}`}>
+                      {day.title || 'Untitled'} · {count} {count === 1 ? 'item' : 'items'}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Delete day ${String(day.dayNumber).padStart(2, '0')}`}
+                    className={`mt-2 mr-1 rounded p-1 ${selectedDay ? 'text-white/70 hover:bg-white/10 hover:text-white' : 'text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40'}`}
+                    onClick={() => setDayPending({ id: day.id, label: `Day ${String(day.dayNumber).padStart(2, '0')}` })}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+      {selected ? (
+        <DayWorkspace day={selected} />
+      ) : (
+        <div className="flex flex-1 items-center justify-center text-sm text-gray-400">Select a day to edit it.</div>
       )}
-      {trip.days.map((day) => (
-        <DayCard
-          key={day.id}
-          day={day}
-          open={openId === day.id}
-          onToggle={() => setOpenId((id) => (id === day.id ? null : day.id))}
-        />
-      ))}
-      {trip.days.length > 0 && (
-        <BaseButton variant="secondary" onClick={addDay}>
-          + Add another day
-        </BaseButton>
-      )}
+      <ConfirmDialog
+        open={dayPending != null}
+        title="Delete day"
+        message={`${dayPending?.label ?? 'This day'} will be removed from this trip.`}
+        onClose={() => setDayPending(null)}
+        onConfirm={() => {
+          if (!dayPending) return
+          removeDay(dayPending.id)
+          setDayPending(null)
+        }}
+      />
     </div>
   )
 }

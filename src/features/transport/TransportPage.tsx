@@ -29,7 +29,6 @@ export function TransportPage() {
   const { transports, setActiveId, addTransport, duplicateTransport, archiveTransport, removeTransport } = useTransport()
   const { notify } = useToast()
   const [open, setOpen] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'edit' | 'summary'>('edit')
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
   const [group, setGroup] = useState('')
@@ -54,7 +53,6 @@ export function TransportPage() {
 
   function openRow(id: string) {
     setActiveId(id)
-    setMobileTab('edit')
     setOpen(true)
   }
 
@@ -239,20 +237,8 @@ export function TransportPage() {
               className="fixed top-8 right-5 bottom-0 left-2 z-50 flex flex-col overflow-hidden rounded-t-xl bg-white shadow-lg md:left-[15%] dark:bg-[#1E1E20]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex gap-2 border-b border-gray-100 px-4 py-2 md:hidden">
-                {(['edit', 'summary'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setMobileTab(tab)}
-                    className={`rounded-full px-3 py-1 text-sm capitalize ${mobileTab === tab ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
               <div className="min-h-0 flex-1">
-                <TransportBuilder onClose={() => setOpen(false)} mobileTab={mobileTab} onShowEditor={() => setMobileTab('edit')} />
+                <TransportBuilder onClose={() => setOpen(false)} />
               </div>
             </motion.div>
           </motion.div>

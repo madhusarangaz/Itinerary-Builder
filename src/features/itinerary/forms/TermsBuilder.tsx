@@ -10,7 +10,16 @@ export function TermsBuilder() {
   return (
     <div id="form-terms" className="scroll-mt-3 space-y-6 px-6 py-4">
       <section id="form-inclusions" className="scroll-mt-3">
-        <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-zinc-100">Inclusions</h3>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-zinc-100">Inclusions</h3>
+          <BaseButton
+            variant="secondary"
+            size="sm"
+            onClick={() => patch({ inclusions: [...trip.inclusions, { id: uid('in'), text: 'New inclusion' }] })}
+          >
+            + Add inclusion
+          </BaseButton>
+        </div>
         {trip.inclusions.map((row) => (
           <div key={row.id} className="mb-2 flex gap-2">
             <InputField
@@ -30,16 +39,18 @@ export function TermsBuilder() {
             </BaseButton>
           </div>
         ))}
-        <BaseButton
-          variant="secondary"
-          size="sm"
-          onClick={() => patch({ inclusions: [...trip.inclusions, { id: uid('in'), text: 'New inclusion' }] })}
-        >
-          + Add inclusion
-        </BaseButton>
       </section>
       <section id="form-exclusions" className="scroll-mt-3">
-        <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-zinc-100">Exclusions</h3>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-zinc-100">Exclusions</h3>
+          <BaseButton
+            variant="secondary"
+            size="sm"
+            onClick={() => patch({ exclusions: [...trip.exclusions, { id: uid('ex'), text: 'New exclusion' }] })}
+          >
+            + Add exclusion
+          </BaseButton>
+        </div>
         {trip.exclusions.map((row) => (
           <div key={row.id} className="mb-2 flex gap-2">
             <InputField
@@ -59,13 +70,6 @@ export function TermsBuilder() {
             </BaseButton>
           </div>
         ))}
-        <BaseButton
-          variant="secondary"
-          size="sm"
-          onClick={() => patch({ exclusions: [...trip.exclusions, { id: uid('ex'), text: 'New exclusion' }] })}
-        >
-          + Add exclusion
-        </BaseButton>
       </section>
       <section id="form-cancel" className="scroll-mt-3">
         <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-zinc-100">Cancellation policy</h3>

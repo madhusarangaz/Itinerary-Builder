@@ -17,9 +17,13 @@ export function TravelExpertForm() {
         aspect="aspect-square"
         className="max-w-40"
       />
-      <InputField label="Name" value={e.name} onChange={(ev) => patch({ travelExpert: { ...e, name: ev.target.value } })} />
+      <div id="expert-name" className="scroll-mt-3">
+        <InputField label="Name" value={e.name} onChange={(ev) => patch({ travelExpert: { ...e, name: ev.target.value } })} />
+      </div>
       <InputField label="Role" value={e.role} onChange={(ev) => patch({ travelExpert: { ...e, role: ev.target.value } })} />
-      <InputField label="Email" value={e.email} onChange={(ev) => patch({ travelExpert: { ...e, email: ev.target.value } })} />
+      <div id="expert-email" className="scroll-mt-3">
+        <InputField label="Email" value={e.email} onChange={(ev) => patch({ travelExpert: { ...e, email: ev.target.value } })} />
+      </div>
       <InputField label="Phone" value={e.phone} onChange={(ev) => patch({ travelExpert: { ...e, phone: ev.target.value } })} />
       <TextAreaField
         label="Short bio"

@@ -29,7 +29,6 @@ export function CostingsPage() {
   const { notify } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(true)
-  const [mobileTab, setMobileTab] = useState<'edit' | 'summary'>('edit')
   const fromItinerary = searchParams.get('from') === 'itinerary'
 
   useEffect(() => {
@@ -143,26 +142,8 @@ export function CostingsPage() {
               className="fixed top-8 right-5 bottom-0 left-2 z-50 flex flex-col overflow-hidden rounded-t-xl bg-white shadow-lg md:left-[15%] dark:bg-[#1E1E20]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex gap-2 border-b border-gray-100 px-4 py-2 md:hidden">
-                {(['edit', 'summary'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setMobileTab(tab)}
-                    className={`rounded-full px-3 py-1 text-sm capitalize ${mobileTab === tab ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
               <div className="min-h-0 flex-1">
-                <CostingBuilder
-                  onClose={close}
-                  mobileTab={mobileTab}
-                  onShowEditor={() => setMobileTab('edit')}
-                  onShowSummary={() => setMobileTab('summary')}
-                  fromItinerary={fromItinerary}
-                />
+                <CostingBuilder onClose={close} fromItinerary={fromItinerary} />
               </div>
             </motion.div>
           </motion.div>

@@ -1,3 +1,4 @@
+import { Check, ExternalLink, FileText, Link2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { AccommodationBuilder } from './forms/AccommodationBuilder'
 import { DayBuilder } from './forms/DayBuilder'
@@ -8,89 +9,155 @@ import { TripDetailsForm } from './forms/TripDetailsForm'
 import { BuilderFooter } from './BuilderFooter'
 import { BuilderHeader } from './BuilderHeader'
 import { BuilderNav } from './BuilderNav'
-import { LivePreview } from './preview/LivePreview'
+import { ItineraryAiChat } from './ItineraryAiChat'
 import { useItinerary } from '../../state/itinerary-store'
-import type { EditorTarget, SectionId } from '../../types/itinerary'
-import { dayRemaining } from '../../lib/completeness'
+import type { SectionId } from '../../types/itinerary'
+import { itineraryCompletion, sendGaps } from '../../lib/completeness'
 import { Modal } from '../../components/ui/Modal'
 import { BaseButton } from '../../components/ui/BaseButton'
 
-export function ItineraryBuilder({
-  onClose,
-  mobileTab,
-  onShowEditor,
-}: {
-  onClose: () => void
-  mobileTab?: 'edit' | 'preview'
-  onShowEditor?: () => void
-}) {
+export function ItineraryBuilder({ onClose, onAiOpenChange }: { onClose: () => void; onAiOpenChange?: (open: boolean) => void }) {
   const { trip, saveStatus } = useItinerary()
   const [section, setSection] = useState<SectionId>('details')
-  const [editTarget, setEditTarget] = useState<EditorTarget | null>(null)
-  const [issues, setIssues] = useState<string[] | null>(null)
-  const [showPreview, setShowPreview] = useState(false)
+  const [gapsOpen, setGapsOpen] = useState(false)
+  const [pdfNote, setPdfNote] = useState(false)
+  const [focus, setFocus] = useState<{ token: number; anchor: string; dayId?: string; stayId?: string } | null>(null)
+  const [aiOpen, setAiOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  function setAskAi(open: boolean) {
+    setAiOpen(open)
+    onAiOpenChange?.(open)
+  }
+  const gaps = sendGaps(trip)
+  const sharePath = `/i/${trip.shareId || 'gb-26-145'}`
+  const shareUrl = `${window.location.origin}${sharePath}`
 
-  const isMobilePreview = mobileTab === 'preview' || showPreview
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+    } catch {
+      const field = document.createElement('textarea')
+      field.value = shareUrl
+      field.setAttribute('readonly', '')
+      field.style.position = 'fixed'
+      field.style.opacity = '0'
+      document.body.appendChild(field)
+      field.select()
+      document.execCommand('copy')
+      field.remove()
+    }
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1600)
+  }
 
-  function openForm(target: EditorTarget) {
-    setSection(target.section)
-    setEditTarget(target)
-    setShowPreview(false)
-    onShowEditor?.()
+  function openGap(id: string) {
+    const gap = gaps.find((item) => item.id === id)
+    if (!gap) return
+    setGapsOpen(false)
+    setSection(gap.section)
+    setFocus({ token: Date.now(), anchor: gap.anchor, dayId: gap.dayId, stayId: gap.stayId })
   }
 
   useEffect(() => {
-    if (!editTarget) return
-    const id = editTarget.dayId
-      ? `form-day-${editTarget.dayId}`
-      : editTarget.field
-        ? `form-${editTarget.field}`
-        : `form-${editTarget.section}`
-    const t = window.setTimeout(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 80)
-    return () => window.clearTimeout(t)
-  }, [editTarget, section])
+    if (!gaps.length) setGapsOpen(false)
+  }, [gaps.length])
+
+  useEffect(() => {
+    if (!focus) return
+    const handle = window.setTimeout(() => {
+      document.getElementById(focus.anchor)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }, 60)
+    return () => window.clearTimeout(handle)
+  }, [focus])
 
   function generate() {
-    const missing: string[] = []
-    if (!trip.title) missing.push('Add a trip name')
-    if (!trip.coverImage) missing.push('Add a cover image')
-    if (trip.pricing.total <= 0) missing.push('Add a tour cost')
-    trip.days.forEach((d) => {
-      dayRemaining(d).forEach((m) => missing.push(`Day ${d.dayNumber}: ${m}`))
-    })
-    if (trip.accommodations.some((a) => !a.hotelId)) missing.push('Select a hotel for every stay')
-    if (missing.length) {
-      setIssues(missing)
+    if (gaps.length) {
+      setGapsOpen(true)
       return
     }
-    setIssues(['PDF export is a preview action for this prototype. Use Copy link to share the live itinerary.'])
+    setPdfNote(true)
   }
 
   return (
     <>
-      <div className="flex h-full min-h-0 w-full overflow-hidden rounded-t-xl bg-white shadow-lg dark:bg-[#1E1E20]">
-        <div
-          className={`h-full w-full flex-shrink-0 md:w-[45%] ${isMobilePreview ? 'hidden md:flex md:flex-col' : 'flex flex-col'} border-r border-gray-100 dark:border-[#2C2A2A]`}
-        >
-          <div className="relative flex h-full min-h-0 flex-col">
-            <BuilderHeader
-              saveStatus={saveStatus}
-              onClose={onClose}
-              showPreviewToggle
-              onShowPreview={() => setShowPreview(true)}
+      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-t-xl bg-white shadow-lg dark:bg-[#1E1E20]">
+        <BuilderHeader
+          saveStatus={saveStatus}
+          onClose={onClose}
+          statusFirst
+          progress={itineraryCompletion(trip)}
+          readiness={{
+            items: gaps,
+            open: gapsOpen,
+            onOpenChange: setGapsOpen,
+            onSelect: openGap,
+          }}
+          actions={
+            <>
+              <button
+                type="button"
+                onClick={() => void copyLink()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 dark:border-[#3a3a3c] dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+              >
+                {copied ? <Check size={14} /> : <Link2 size={14} />}
+                {copied ? 'Copied' : 'Copy link'}
+              </button>
+              <a
+                href={sharePath}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#111317] px-3 py-1.5 text-sm font-medium text-white dark:bg-white dark:text-[#111317]"
+              >
+                <ExternalLink size={14} />
+                Open
+              </a>
+            </>
+          }
+        />
+        <div className="relative flex min-h-0 flex-1 flex-col md:flex-row">
+          <div className="md:hidden">
+            <BuilderNav
+              trip={trip}
+              active={section}
+              onChange={(id) => {
+                setFocus(null)
+                setSection(id)
+              }}
+              onAskAi={() => setAskAi(true)}
+              orientation="horizontal"
             />
-            <BuilderNav trip={trip} active={section} onChange={setSection} />
-            <div className="flex-1 overflow-y-auto pb-4">
-              {section === 'details' && <TripDetailsForm />}
-              {section === 'days' && <DayBuilder focusDayId={editTarget?.section === 'days' ? editTarget.dayId : undefined} />}
-              {section === 'stay' && <AccommodationBuilder />}
-              {section === 'pricing' && <PricingForm />}
-              {section === 'terms' && <TermsBuilder />}
-              {section === 'expert' && <TravelExpertForm />}
+          </div>
+          <div className="hidden h-full md:flex">
+            <BuilderNav
+              trip={trip}
+              active={section}
+              onChange={(id) => {
+                setFocus(null)
+                setSection(id)
+              }}
+              onAskAi={() => setAskAi(true)}
+            />
+          </div>
+          <ItineraryAiChat open={aiOpen} onClose={() => setAskAi(false)} />
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <div className={section === 'days' || section === 'details' || section === 'stay' ? 'min-h-0 flex-1 overflow-hidden' : 'min-h-0 flex-1 overflow-y-auto'}>
+              {section === 'days' ? (
+                <DayBuilder focusDayId={focus?.dayId} />
+              ) : section === 'details' ? (
+                <TripDetailsForm />
+              ) : section === 'stay' ? (
+                <AccommodationBuilder focusStayId={focus?.stayId} />
+              ) : (
+                <div className="mx-auto w-full max-w-[720px]">
+                  {section === 'pricing' && <PricingForm />}
+                  {section === 'terms' && <TermsBuilder />}
+                  {section === 'expert' && <TravelExpertForm />}
+                </div>
+              )}
             </div>
             <BuilderFooter
+              align="end"
+              generateIcon={<FileText size={15} />}
               onSaveDraft={() => {
                 localStorage.setItem('travelbuilding.trip.v3', JSON.stringify(trip))
               }}
@@ -98,25 +165,11 @@ export function ItineraryBuilder({
             />
           </div>
         </div>
-        <div className={`${isMobilePreview ? 'flex' : 'hidden md:flex'} h-full min-h-0 min-w-0 flex-1`}>
-          <LivePreview trip={trip} onEdit={openForm} />
-        </div>
       </div>
-      <Modal
-        open={!!issues}
-        title={issues && issues[0]?.startsWith('PDF') ? 'Generate PDF' : 'A few details remaining'}
-        onClose={() => setIssues(null)}
-        footer={
-          <BaseButton onClick={() => setIssues(null)}>
-            {issues && issues[0]?.startsWith('PDF') ? 'OK' : 'Continue editing'}
-          </BaseButton>
-        }
-      >
-        <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-          {issues?.map((m) => (
-            <li key={m}>○ {m}</li>
-          ))}
-        </ul>
+      <Modal open={pdfNote} title="Ready to send" onClose={() => setPdfNote(false)} footer={<BaseButton onClick={() => setPdfNote(false)}>OK</BaseButton>}>
+        <p className="text-sm text-gray-700 dark:text-gray-300">
+          PDF export is a preview action for this prototype. Use Copy link to share the live itinerary.
+        </p>
       </Modal>
     </>
   )

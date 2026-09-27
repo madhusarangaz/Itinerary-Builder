@@ -7,15 +7,12 @@ import { requiredSupplierIssues, supplierProgress, supplierSections } from '../.
 import { useSuppliers } from '../../state/supplier-store'
 import type { SupplierSectionId } from '../../types/supplier'
 import { SupplierNav } from './SupplierNav'
-import { SupplierSummary } from './SupplierSummary'
 import { SupplierSections } from './forms/SupplierSections'
 
-export function SupplierBuilder({ onClose, mobileTab, onShowEditor }: { onClose: () => void; mobileTab?: 'edit' | 'summary'; onShowEditor?: () => void }) {
+export function SupplierBuilder({ onClose }: { onClose: () => void }) {
   const { active, saveStatus, patchActive } = useSuppliers()
   const [section, setSection] = useState<SupplierSectionId>('supplier')
-  const [showSummary, setShowSummary] = useState(false)
   const [issues, setIssues] = useState<string[] | null>(null)
-  const isMobileSummary = mobileTab === 'summary' || showSummary
   const progress = supplierProgress(active)
   const visible = supplierSections(active)
 
@@ -35,27 +32,36 @@ export function SupplierBuilder({ onClose, mobileTab, onShowEditor }: { onClose:
 
   return (
     <>
-      <div className="flex h-full min-h-0 w-full overflow-hidden rounded-t-xl bg-white shadow-lg dark:bg-[#1E1E20]">
-        <div className={`h-full w-full flex-shrink-0 md:w-[56%] ${isMobileSummary ? 'hidden md:flex md:flex-col' : 'flex flex-col'} border-r border-gray-100 dark:border-[#2C2A2A]`}>
-          <div className="relative flex h-full min-h-0 flex-col">
-            <BuilderHeader saveStatus={saveStatus} onClose={onClose} title={active.name.trim() ? `Edit ${active.name}` : 'Create Supplier'} subtitle="Supplier Master" showPreviewToggle previewLabel="Show summary" onShowPreview={() => setShowSummary(true)} />
-            <p className="px-6 pb-1 text-xs text-gray-400">
-              Supplier profile {progress.percent}% complete
-              {progress.remaining > 0 ? ` · ${progress.remaining === 1 ? '1 recommended detail remaining' : `${progress.remaining} recommended details remaining`}` : ''}
-            </p>
+      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-white dark:bg-[#1E1E20]">
+        <BuilderHeader
+          saveStatus={saveStatus}
+          onClose={onClose}
+          statusFirst
+          progress={progress.percent}
+          title={active.name.trim() ? `Edit ${active.name}` : 'Create Supplier'}
+          subtitle="Supplier Master"
+        />
+        <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+          <div className="md:hidden">
+            <SupplierNav supplier={active} active={section} onChange={setSection} orientation="horizontal" />
+          </div>
+          <div className="hidden h-full md:flex">
             <SupplierNav supplier={active} active={section} onChange={setSection} />
-            <div className="flex-1 overflow-y-auto pb-4">
-              <SupplierSections section={section} />
+          </div>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="mx-auto w-full max-w-[720px]">
+                <SupplierSections section={section} />
+              </div>
             </div>
-            <BuilderFooter onSaveDraft={() => patchActive({ status: 'draft' })} onGenerate={activate} draftLabel="Save as Draft" generateLabel={active.status === 'active' ? 'Save supplier' : 'Activate Supplier'} />
+            <BuilderFooter
+              align="end"
+              onSaveDraft={() => patchActive({ status: 'draft' })}
+              onGenerate={activate}
+              draftLabel="Save as Draft"
+              generateLabel={active.status === 'active' ? 'Save supplier' : 'Activate Supplier'}
+            />
           </div>
-        </div>
-        <div className={`${isMobileSummary ? 'flex' : 'hidden md:flex'} h-full min-h-0 min-w-0 flex-1 flex-col`}>
-          <div className="flex items-center justify-between border-b border-black/5 px-4 py-3 md:hidden">
-            <p className="text-sm font-medium">{active.name || 'Supplier summary'}</p>
-            <button type="button" className="text-sm underline" onClick={() => { setShowSummary(false); onShowEditor?.() }}>Edit</button>
-          </div>
-          <SupplierSummary />
         </div>
       </div>
       <Modal open={!!issues} title="A few details remaining" onClose={() => setIssues(null)} footer={<BaseButton onClick={() => setIssues(null)}>Continue editing</BaseButton>}>

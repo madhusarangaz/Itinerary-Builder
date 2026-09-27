@@ -9,19 +9,72 @@ export const COSTING_STATUS_LABELS: Record<CostingStatus, string> = {
   approved: 'Approved',
 }
 
+function stayNeedsHotel(row: Costing['accommodation'][number]) {
+  return row.nights > 0 && !/depart/i.test(row.destinationName)
+}
+
+function crewIsSet(c: Costing) {
+  return c.driverGuide.driverBataPerDayLKR > 0 || c.driverGuide.driverCalculationMode === 'manual'
+}
+
+export type CostingGap = {
+  id: string
+  label: string
+  section: CostingSectionId
+  anchor: string
+}
+
+/** What is still open before this costing can be completed. Empty means ready. */
+export function costingGaps(c: Costing): CostingGap[] {
+  const gaps: CostingGap[] = []
+  if (!c.referenceNo.trim()) gaps.push({ id: 'reference', label: 'Add a tour reference', section: 'tour', anchor: 'cost-tour' })
+  if (!c.clientName.trim()) gaps.push({ id: 'client', label: 'Add a client name', section: 'tour', anchor: 'cost-tour' })
+  if (!c.numberOfPeople) gaps.push({ id: 'pax', label: 'Add the number of people', section: 'tour', anchor: 'cost-tour' })
+  if (!c.exchangeRate) gaps.push({ id: 'rate', label: 'Add an exchange rate', section: 'tour', anchor: 'cost-tour' })
+  if (!c.accommodation.length) {
+    gaps.push({ id: 'stays', label: 'Add the stays', section: 'stay', anchor: 'cost-stay' })
+  } else {
+    for (const row of c.accommodation) {
+      if (!stayNeedsHotel(row)) continue
+      if (!row.hotelName?.trim()) {
+        gaps.push({ id: `hotel-${row.id}`, label: `Add the hotel for day ${row.dayNumber}`, section: 'stay', anchor: 'cost-stay' })
+      }
+      if (calculateAccommodationDayTotal(row) <= 0) {
+        gaps.push({ id: `rates-${row.id}`, label: `Add room rates for day ${row.dayNumber}`, section: 'stay', anchor: 'cost-stay' })
+      }
+    }
+  }
+  if (!c.transportation.ratePerKmLKR) {
+    gaps.push({ id: 'km', label: 'Add a transportation KM rate', section: 'transport', anchor: 'cost-transport' })
+  }
+  if (!crewIsSet(c)) gaps.push({ id: 'crew', label: 'Set the driver pay', section: 'crew', anchor: 'cost-crew' })
+  if (!c.activities.length) gaps.push({ id: 'activities', label: 'Add activities', section: 'activities', anchor: 'cost-activities' })
+  if (!c.additionalCosts.length) gaps.push({ id: 'extras', label: 'Add additional costs', section: 'extras', anchor: 'cost-extras' })
+  return gaps
+}
+
 export function costingIssues(c: Costing) {
-  const missing: string[] = []
-  if (!c.referenceNo.trim()) missing.push('Add a tour reference')
-  if (!c.clientName.trim()) missing.push('Add a client name')
-  if (!c.numberOfPeople) missing.push('Add number of people')
-  if (!c.exchangeRate) missing.push('Add an exchange rate')
-  if (!c.transportation.ratePerKmLKR) missing.push('Add a transportation KM rate')
-  c.accommodation.forEach((row) => {
-    const needsHotel = row.nights > 0 && !/depart/i.test(row.destinationName)
-    if (needsHotel && !row.hotelName?.trim()) missing.push(`Hotel missing for Day ${row.dayNumber}`)
-    if (needsHotel && calculateAccommodationDayTotal(row) <= 0) missing.push(`Room rates missing for Day ${row.dayNumber}`)
-  })
-  return missing
+  return costingGaps(c).map((gap) => gap.label)
+}
+
+export function costingCompletion(c: Costing) {
+  const checks: boolean[] = [
+    Boolean(c.referenceNo.trim()),
+    Boolean(c.clientName.trim()),
+    Boolean(c.numberOfPeople),
+    Boolean(c.exchangeRate),
+    c.accommodation.length > 0,
+    Boolean(c.transportation.ratePerKmLKR),
+    crewIsSet(c),
+    c.activities.length > 0,
+    c.additionalCosts.length > 0,
+  ]
+  for (const row of c.accommodation) {
+    if (!stayNeedsHotel(row)) continue
+    checks.push(Boolean(row.hotelName?.trim()), calculateAccommodationDayTotal(row) > 0)
+  }
+  if (!checks.length) return 0
+  return Math.round((checks.filter(Boolean).length / checks.length) * 100)
 }
 
 export function costingSectionStatus(c: Costing, id: CostingSectionId): Completeness {

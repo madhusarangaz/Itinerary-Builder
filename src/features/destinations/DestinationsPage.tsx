@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { Archive, Copy, MapPin, Pencil, Plus, Search, Sparkles, Trash2 } from 'lucide-react'
+import { Archive, Copy, MapPin, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { AppShell } from '../../components/layout/AppShell'
 import { BaseButton } from '../../components/ui/BaseButton'
@@ -31,7 +31,6 @@ export function DestinationsPage() {
   const { notify } = useToast()
   const [open, setOpen] = useState(false)
   const [aiOpen, setAiOpen] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit')
   const [q, setQ] = useState('')
   const [region, setRegion] = useState('')
   const [experience, setExperience] = useState('')
@@ -50,7 +49,6 @@ export function DestinationsPage() {
 
   function openDest(id: string) {
     setActiveId(id)
-    setMobileTab('edit')
     setAiOpen(false)
     setOpen(true)
   }
@@ -227,43 +225,14 @@ export function DestinationsPage() {
             <motion.div
               variants={panel}
               className={cn(
-                'fixed top-8 right-5 bottom-0 z-50 flex flex-col overflow-visible bg-transparent transition-[left] duration-300 ease-out',
+                'fixed top-8 right-5 bottom-0 z-50 flex flex-col overflow-hidden bg-transparent transition-[left] duration-300 ease-out',
                 aiOpen ? 'left-2 md:left-[360px]' : 'left-2 md:left-[15%]',
               )}
               onClick={(e) => e.stopPropagation()}
             >
-              {!aiOpen ? (
-                <button
-                  type="button"
-                  onClick={() => setAiOpen(true)}
-                  className="absolute bottom-12 left-0 z-[60] hidden -translate-x-full items-center gap-1.5 rounded-l-xl border border-r-0 border-gray-200 bg-white py-2.5 pr-2.5 pl-3 text-xs font-medium text-gray-800 shadow-md transition hover:bg-gray-50 md:inline-flex dark:border-[#2C2A2A] dark:bg-[#242528] dark:text-zinc-100 dark:hover:bg-white/5"
-                  aria-label="Ask AI"
-                >
-                  <Sparkles size={14} />
-                  AI
-                </button>
-              ) : null}
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-xl bg-white shadow-lg dark:bg-[#1E1E20]">
-                <div className="flex gap-2 border-b border-gray-100 px-4 py-2 md:hidden">
-                  {(['edit', 'preview'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setMobileTab(tab)}
-                      className={`rounded-full px-3 py-1 text-sm capitalize ${mobileTab === tab ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
                 <div className="min-h-0 flex-1">
-                  <DestinationBuilder
-                    onClose={closeBuilder}
-                    mobileTab={mobileTab}
-                    onShowEditor={() => setMobileTab('edit')}
-                    aiOpen={aiOpen}
-                    onAiOpenChange={setAiOpen}
-                  />
+                  <DestinationBuilder onClose={closeBuilder} aiOpen={aiOpen} onAiOpenChange={setAiOpen} />
                 </div>
               </div>
             </motion.div>

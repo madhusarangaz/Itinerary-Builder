@@ -22,6 +22,8 @@ export type Highlight = {
   name: string
   description: string
   image: string
+  /** Stable label. Existing highlights keep theirs when a new one is added at the top. */
+  number?: number
 }
 
 export type Facility = {
@@ -113,6 +115,8 @@ export type Accommodation = {
   starCategory: number
   mealPlan: string
   image: string
+  /** Overnight days that share this stay, in journey order. */
+  dayIds?: string[]
 }
 
 export type Pricing = {

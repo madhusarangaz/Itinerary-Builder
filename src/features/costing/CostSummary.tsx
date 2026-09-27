@@ -66,12 +66,7 @@ function Detail({ left, right }: { left: string; right: string }) {
 export function CostSummary() {
   const { active: c } = useCosting()
   const t = calculatePricing(c)
-  const [open, setOpen] = useState<Record<string, boolean>>({
-    acc: true,
-    tr: true,
-    crew: true,
-    extras: true,
-  })
+  const [open, setOpen] = useState<Record<string, boolean>>({})
   const cur = c.currency
 
   function toggle(id: string) {
@@ -79,8 +74,7 @@ export function CostSummary() {
   }
 
   return (
-    <div className="h-full overflow-auto bg-[#f2f2f2] p-4 dark:bg-[#1F1F20]">
-      <div className="rounded-xl border border-gray-100 bg-white p-4 dark:border-[#2C2A2A] dark:bg-[#1E1E20]">
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/80">
         <div className="mb-3 flex items-end justify-between">
           <div>
             <p className="text-[10px] font-medium tracking-[0.22em] text-gray-400 uppercase">Cost summary</p>
@@ -214,12 +208,12 @@ export function CostSummary() {
           <div className="flex items-end justify-between gap-3">
             <div>
               <p className="text-[10px] tracking-[0.2em] uppercase text-white/70">Final package</p>
-              <p className="mt-1 text-3xl font-semibold">{formatMoney(t.finalPackageCost, cur)}</p>
+              <p className="mt-1 text-2xl font-semibold">{formatMoney(t.finalPackageCost, cur)}</p>
               <p className="mt-1 text-xs text-white/60">{c.numberOfPeople} travellers</p>
             </div>
             <div className="text-right">
               <p className="text-[10px] tracking-[0.2em] uppercase text-white/70">Price / person</p>
-              <p className="mt-1 text-2xl">{formatMoney(t.pricePerPerson, cur)}</p>
+              <p className="mt-1 text-lg">{formatMoney(t.pricePerPerson, cur)}</p>
             </div>
           </div>
         </div>
@@ -228,7 +222,6 @@ export function CostSummary() {
             Quoted {formatMoney(t.quotedPricePerPerson, cur)}/person · {formatMoney(t.quotedPackageTotal, cur)} total
           </p>
         )}
-      </div>
     </div>
   )
 }

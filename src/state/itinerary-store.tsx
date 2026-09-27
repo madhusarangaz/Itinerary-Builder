@@ -11,6 +11,7 @@ import {
 } from 'react'
 import { defaultHotels, sampleTrip } from '../data/sample-trip'
 import { addDays, nightsBetween } from '../lib/dates'
+import { alignedNightCount, applyJourneyDays, assignStayDays, redateDays, syncStays } from '../lib/journey'
 import { activityOpsFilled, travellerFilled } from '../lib/day-glance'
 import { uid } from '../lib/ids'
 import type {
@@ -110,6 +111,7 @@ type Ctx = {
   reorderActivities: (dayId: string, activities: Activity[]) => void
   addSubActivity: (dayId: string, activityId: string) => void
   updateAccommodation: (id: string, patch: Partial<Accommodation>) => void
+  setStayDestination: (id: string, destination: string, destinationId?: string, hotel?: Partial<Accommodation>) => void
   addAccommodation: () => void
   removeAccommodation: (id: string) => void
   addHotel: (hotel: Omit<Hotel, 'id'> & { id?: string }) => Hotel
@@ -145,33 +147,34 @@ export function ItineraryProvider({ children }: { children: ReactNode }) {
 
   const updateDay = useCallback(
     (id: string, p: Partial<Day>) => {
-      setDays(trip.days.map((d) => (d.id === id ? { ...d, ...p } : d)))
+      const days = trip.days.map((d) => (d.id === id ? { ...d, ...p } : d))
+      if ('destination' in p || 'destinationId' in p) {
+        const nightCount = alignedNightCount(days.length, trip.startDate, trip.endDate)
+        patch({ days, accommodations: syncStays(days, trip.accommodations, nightCount) })
+        return
+      }
+      setDays(days)
     },
-    [setDays, trip.days],
+    [patch, setDays, trip.accommodations, trip.days, trip.endDate, trip.startDate],
   )
 
   const addDay = useCallback(() => {
-    const last = trip.days[trip.days.length - 1]
-    const n = trip.days.length + 1
-    const date = last ? addDays(last.date, 1) : trip.startDate
-    setDays([
-      ...trip.days,
-      {
-        id: uid('day'),
-        dayNumber: n,
-        date,
-        destination: '',
-        title: '',
-        image: '',
-        activities: [],
-      },
-    ])
-  }, [setDays, trip.days, trip.startDate])
+    if (!trip.startDate) return
+    const currentNights = Math.max(trip.days.length - 1, 0)
+    const fromDates = trip.days.length === 0 ? nightsBetween(trip.startDate, trip.endDate) : 0
+    const nightCount = trip.days.length === 0 ? Math.max(fromDates, 1) : currentNights + 1
+    const days = applyJourneyDays(trip.days, trip.startDate, nightCount)
+    patch({
+      endDate: addDays(trip.startDate, nightCount),
+      days,
+      accommodations: syncStays(days, trip.accommodations, nightCount),
+    })
+  }, [patch, trip.accommodations, trip.days, trip.endDate, trip.startDate])
 
   const duplicateDay = useCallback(
     (id: string) => {
       const idx = trip.days.findIndex((d) => d.id === id)
-      if (idx < 0) return
+      if (idx < 0 || !trip.startDate) return
       const source = trip.days[idx]
       const copy: Day = {
         ...structuredClone(source),
@@ -182,28 +185,34 @@ export function ItineraryProvider({ children }: { children: ReactNode }) {
           subActivities: a.subActivities.map((s) => ({ ...s, id: uid('sub') })),
         })),
       }
-      const days = [...trip.days]
-      days.splice(idx + 1, 0, copy)
-      setDays(
-        days.map((d, i) => ({
-          ...d,
-          dayNumber: i + 1,
-          date: addDays(trip.startDate, i),
-        })),
-      )
+      const inserted = [...trip.days]
+      inserted.splice(idx + 1, 0, copy)
+      const days = redateDays(inserted, trip.startDate)
+      const nightCount = Math.max(days.length - 1, 0)
+      patch({
+        endDate: addDays(trip.startDate, nightCount),
+        days,
+        accommodations: syncStays(days, trip.accommodations, nightCount),
+      })
     },
-    [setDays, trip.days, trip.startDate],
+    [patch, trip.accommodations, trip.days, trip.startDate],
   )
 
   const removeDay = useCallback(
     (id: string) => {
-      setDays(
-        trip.days
-          .filter((d) => d.id !== id)
-          .map((d, i) => ({ ...d, dayNumber: i + 1, date: addDays(trip.startDate, i) })),
+      if (!trip.startDate) return
+      const days = redateDays(
+        trip.days.filter((d) => d.id !== id),
+        trip.startDate,
       )
+      const nightCount = Math.max(days.length - 1, 0)
+      patch({
+        endDate: days.length ? addDays(trip.startDate, nightCount) : trip.endDate,
+        days,
+        accommodations: syncStays(days, trip.accommodations, nightCount),
+      })
     },
-    [setDays, trip.days, trip.startDate],
+    [patch, trip.accommodations, trip.days, trip.endDate, trip.startDate],
   )
 
   const addActivity = useCallback(
@@ -301,29 +310,58 @@ export function ItineraryProvider({ children }: { children: ReactNode }) {
     [patch, trip.accommodations],
   )
 
+  const setStayDestination = useCallback(
+    (id: string, destination: string, destinationId?: string, hotel?: Partial<Accommodation>) => {
+      const nightCount = alignedNightCount(trip.days.length, trip.startDate, trip.endDate)
+      const linked = assignStayDays(trip.days.slice(0, nightCount), trip.accommodations)
+      const stay = linked.find((item) => item.id === id)
+      if (!stay) return
+      const ids = new Set(stay.dayIds ?? [])
+      const days = trip.days.map((day) => (ids.has(day.id) ? { ...day, destination, destinationId } : day))
+      let accommodations = syncStays(days, linked, nightCount)
+      if (hotel) {
+        accommodations = accommodations.map((item) => {
+          const linkedIds = item.dayIds ?? []
+          const sameGroup = linkedIds.length === ids.size && linkedIds.every((dayId) => ids.has(dayId))
+          return sameGroup ? { ...item, ...hotel, destination, dayIds: item.dayIds } : item
+        })
+      }
+      patch({ days, accommodations })
+    },
+    [patch, trip.accommodations, trip.days, trip.endDate, trip.startDate],
+  )
+
   const addAccommodation = useCallback(() => {
-    patch({
-      accommodations: [
-        ...trip.accommodations,
-        {
-          id: uid('acc'),
-          destination: '',
-          hotelId: '',
-          hotelName: '',
-          nights: 1,
-          starCategory: 5,
-          mealPlan: 'HB',
-          image: '',
-        },
-      ],
-    })
-  }, [patch, trip.accommodations])
+    addDay()
+  }, [addDay])
 
   const removeAccommodation = useCallback(
     (id: string) => {
-      patch({ accommodations: trip.accommodations.filter((a) => a.id !== id) })
+      if (!trip.startDate) return
+      const nightCount = alignedNightCount(trip.days.length, trip.startDate, trip.endDate)
+      const linked = assignStayDays(trip.days.slice(0, nightCount), trip.accommodations)
+      const stay = linked.find((item) => item.id === id)
+      const drop = new Set(stay?.dayIds ?? [])
+      if (!drop.size) {
+        patch({ accommodations: trip.accommodations.filter((item) => item.id !== id) })
+        return
+      }
+      const days = redateDays(
+        trip.days.filter((day) => !drop.has(day.id)),
+        trip.startDate,
+      )
+      const nextNights = Math.max(days.length - 1, 0)
+      patch({
+        endDate: days.length ? addDays(trip.startDate, nextNights) : trip.endDate,
+        days,
+        accommodations: syncStays(
+          days,
+          linked.filter((item) => item.id !== id),
+          nextNights,
+        ),
+      })
     },
-    [patch, trip.accommodations],
+    [patch, trip.accommodations, trip.days, trip.endDate, trip.startDate],
   )
 
   const addHotel = useCallback((hotel: Omit<Hotel, 'id'> & { id?: string }) => {
@@ -352,6 +390,7 @@ export function ItineraryProvider({ children }: { children: ReactNode }) {
       reorderActivities,
       addSubActivity,
       updateAccommodation,
+      setStayDestination,
       addAccommodation,
       removeAccommodation,
       addHotel,
@@ -374,6 +413,7 @@ export function ItineraryProvider({ children }: { children: ReactNode }) {
       reorderActivities,
       addSubActivity,
       updateAccommodation,
+      setStayDestination,
       addAccommodation,
       removeAccommodation,
       addHotel,
