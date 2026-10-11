@@ -9,7 +9,7 @@ import { emptyActivity } from '../../lib/activity'
 import { cn } from '../../lib/cn'
 import { useToast } from '../../components/ui/Toast'
 import { useActivities } from '../../state/activity-store'
-import { useDestinations } from '../../state/destination-store'
+import { liveDestinations, useDestinations } from '../../state/destination-store'
 import type { ActivityPlacement, ActivityStatus } from '../../types/activity'
 import { ActivityBuilder } from './ActivityBuilder'
 
@@ -69,7 +69,7 @@ export function ActivitiesPage() {
             <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search activities..." className="h-10 w-full rounded-lg border border-gray-200 bg-white pr-3 pl-9 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-transparent dark:bg-zinc-800 dark:text-zinc-100" />
           </div>
-          <BaseSelect className="mb-0" placeholder="All locations" value={place} options={destinations.map((d) => ({ value: d.id, label: d.name }))} onChange={(e) => setPlace(e.target.value)} />
+          <BaseSelect className="mb-0" placeholder="All locations" value={place} options={liveDestinations(destinations).map((d) => ({ value: d.id, label: d.name }))} onChange={(e) => setPlace(e.target.value)} />
           <BaseSelect className="mb-0" placeholder="All types" value={type} options={(Object.keys(PLACEMENT_LABEL) as ActivityPlacement[]).map((id) => ({ value: id, label: PLACEMENT_LABEL[id] }))} onChange={(e) => setType(e.target.value)} />
           <BaseSelect className="mb-0" placeholder="All statuses" value={status} options={(Object.keys(ACTIVITY_STATUS_LABELS) as ActivityStatus[]).map((id) => ({ value: id, label: ACTIVITY_STATUS_LABELS[id] }))} onChange={(e) => setStatus(e.target.value)} />
         </div>

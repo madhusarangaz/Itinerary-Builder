@@ -215,7 +215,11 @@ export type Trip = {
   driverName?: string
   /** Linked internal costing record. Customer itinerary never shows buy rates or margins. */
   costingId?: string
+  /** Shown on the itinerary list. New trips start as Draft. */
+  listingStatus?: ListingStatus
   updatedAt: string
 }
+
+export type ListingStatus = 'Draft' | 'Sent' | 'Confirmed'
 
 export type SaveStatus = 'saving' | 'saved' | 'idle'

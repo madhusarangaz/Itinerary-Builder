@@ -1,6 +1,7 @@
 import { photos, sampleHeroVideo } from './images'
 import type { Activity, ActivityType, Hotel, Trip } from '../types/itinerary'
 import { nightsBetween } from '../lib/dates'
+import { nextTourId, uid } from '../lib/ids'
 
 function act(
   id: string,
@@ -359,6 +360,73 @@ export const sampleTrip: Trip = {
   },
   updatedAt: new Date().toISOString(),
 }
+
+/** A new itinerary. Does not copy the open draft. */
+export function blankTrip(partial: Partial<Trip> = {}): Trip {
+  const { id: givenId, ...rest } = partial
+  const id = givenId ?? uid('trip')
+  const startDate = partial.startDate ?? ''
+  const endDate = partial.endDate ?? ''
+  return {
+    shareId: id,
+    tourId: nextTourId(),
+    title: '',
+    option: '1.1',
+    customer: '',
+    country: 'Sri Lanka',
+    startDate,
+    endDate,
+    startPoint: 'Bandaranaike International Airport',
+    endPoint: '',
+    interests: [],
+    adults: 2,
+    children: 0,
+    infants: 0,
+    nights: nightsBetween(startDate, endDate),
+    coverImage: '',
+    coverPosition: 50,
+    heroVideoUrl: '',
+    highlights: [],
+    facilities: [],
+    days: [],
+    accommodations: [],
+    pricing: { currency: 'USD', travellerCount: 2, total: 0, occupancyNote: '' },
+    inclusions: [],
+    exclusions: [],
+    cancellationPolicies: [],
+    cancellationNote: '',
+    accommodationNote: '',
+    travelExpert: { name: '', role: '', photo: '', email: '', phone: '', bio: '' },
+    listingStatus: 'Draft',
+    updatedAt: new Date().toISOString(),
+    ...rest,
+    id,
+  }
+}
+
+/** Other rows on the itinerary list. They are separate from the working draft. */
+export const catalogTrips: Trip[] = [
+  blankTrip({
+    id: 'trip-tea-trails',
+    shareId: 'gb-26-118',
+    tourId: 'GB/26/118',
+    title: 'Tea Trails & Coast',
+    customer: 'The Sharma Family',
+    startDate: '2026-10-02',
+    endDate: '2026-10-09',
+    listingStatus: 'Sent',
+  }),
+  blankTrip({
+    id: 'trip-wildlife',
+    shareId: 'gb-26-102',
+    tourId: 'GB/26/102',
+    title: 'Wildlife Circuit',
+    customer: 'Nordic Travel Partners',
+    startDate: '2026-11-12',
+    endDate: '2026-11-20',
+    listingStatus: 'Confirmed',
+  }),
+]
 
 export const mockCustomers = [
   'Idrees & Family',

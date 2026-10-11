@@ -4,12 +4,11 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useReducer,
   useRef,
   useState,
   type ReactNode,
 } from 'react'
-import { defaultHotels, sampleTrip } from '../data/sample-trip'
+import { blankTrip, catalogTrips, defaultHotels, sampleTrip } from '../data/sample-trip'
 import { addDays, nightsBetween } from '../lib/dates'
 import { alignedNightCount, applyJourneyDays, assignStayDays, redateDays, syncStays } from '../lib/journey'
 import { activityOpsFilled, travellerFilled } from '../lib/day-glance'
@@ -26,7 +25,10 @@ import type {
 } from '../types/itinerary'
 
 const TRIP_KEY = 'travelbuilding.trip.v3'
+const TRIPS_KEY = 'travelbuilding.trips.v1'
 const HOTEL_KEY = 'travelbuilding.hotels.v3'
+
+type Library = { trips: Trip[]; activeId: string }
 
 type Action =
   | { type: 'replace'; trip: Trip }
@@ -85,6 +87,30 @@ function loadTrip(): Trip {
   return sampleTrip
 }
 
+function loadLibrary(): Library {
+  try {
+    const raw = localStorage.getItem(TRIPS_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<Library>
+      if (Array.isArray(parsed.trips)) {
+        const trips = parsed.trips.map((trip) => normalizeTrip(trip))
+        const activeId = trips.some((trip) => trip.id === parsed.activeId) ? parsed.activeId! : trips[0]?.id ?? ''
+        return { trips, activeId }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  const current = loadTrip()
+  const extras = catalogTrips.filter((trip) => trip.id !== current.id && trip.tourId !== current.tourId)
+  return { trips: [current, ...extras], activeId: current.id }
+}
+
+function normalizeTrip(trip: Trip): Trip {
+  if (trip.id === sampleTrip.id) return hydrateSampleOps({ ...sampleTrip, ...trip })
+  return hydrateSampleOps(trip)
+}
+
 function loadHotels(): Hotel[] {
   try {
     const raw = localStorage.getItem(HOTEL_KEY)
@@ -97,9 +123,14 @@ function loadHotels(): Hotel[] {
 
 type Ctx = {
   trip: Trip
+  trips: Trip[]
   hotels: Hotel[]
   saveStatus: SaveStatus
   patch: (patch: Partial<Trip>) => void
+  createItinerary: () => string
+  openItinerary: (id: string) => void
+  removeItinerary: (id: string) => void
+  saveNow: () => void
   setDays: (days: Day[]) => void
   updateDay: (id: string, patch: Partial<Day>) => void
   addDay: () => void
@@ -122,27 +153,67 @@ type Ctx = {
 const ItineraryContext = createContext<Ctx | null>(null)
 
 export function ItineraryProvider({ children }: { children: ReactNode }) {
-  const [trip, dispatch] = useReducer(reducer, undefined, loadTrip)
+  const [library, setLibrary] = useState<Library>(loadLibrary)
+  const fallbackTrip = useRef<Trip>(blankTrip())
+  const trip = library.trips.find((item) => item.id === library.activeId) ?? library.trips[0] ?? fallbackTrip.current
   const [hotels, setHotels] = useState<Hotel[]>(loadHotels)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const timer = useRef<number | null>(null)
+
+  const dispatch = useCallback((action: Action) => {
+    setLibrary((prev) => {
+      const current = prev.trips.find((item) => item.id === prev.activeId) ?? prev.trips[0]
+      if (!current) return prev
+      const next = reducer(current, action)
+      return { ...prev, trips: prev.trips.map((item) => (item.id === current.id ? next : item)) }
+    })
+  }, [])
+
+  const writeLibrary = useCallback((next: Library, hotelList: Hotel[]) => {
+    localStorage.setItem(TRIPS_KEY, JSON.stringify(next))
+    const current = next.trips.find((item) => item.id === next.activeId)
+    if (current) localStorage.setItem(TRIP_KEY, JSON.stringify(current))
+    localStorage.setItem(HOTEL_KEY, JSON.stringify(hotelList))
+  }, [])
 
   useEffect(() => {
     setSaveStatus('saving')
     if (timer.current) window.clearTimeout(timer.current)
     timer.current = window.setTimeout(() => {
-      localStorage.setItem(TRIP_KEY, JSON.stringify(trip))
-      localStorage.setItem(HOTEL_KEY, JSON.stringify(hotels))
+      writeLibrary(library, hotels)
       setSaveStatus('saved')
     }, 600)
     return () => {
       if (timer.current) window.clearTimeout(timer.current)
     }
-  }, [trip, hotels])
+  }, [library, hotels, writeLibrary])
 
   const patch = useCallback((p: Partial<Trip>) => {
     dispatch({ type: 'patch', patch: p })
+  }, [dispatch])
+
+  const createItinerary = useCallback(() => {
+    const created = blankTrip()
+    setLibrary((prev) => ({ activeId: created.id, trips: [created, ...prev.trips] }))
+    return created.id
   }, [])
+
+  const openItinerary = useCallback((id: string) => {
+    setLibrary((prev) => (prev.trips.some((item) => item.id === id) ? { ...prev, activeId: id } : prev))
+  }, [])
+
+  const removeItinerary = useCallback((id: string) => {
+    setLibrary((prev) => {
+      const trips = prev.trips.filter((item) => item.id !== id)
+      const activeId = trips.some((item) => item.id === prev.activeId) ? prev.activeId : trips[0]?.id ?? ''
+      return { trips, activeId }
+    })
+  }, [])
+
+  const saveNow = useCallback(() => {
+    writeLibrary(library, hotels)
+    setSaveStatus('saved')
+  }, [hotels, library, writeLibrary])
 
   const setDays = useCallback((days: Day[]) => dispatch({ type: 'setDays', days }), [])
 
@@ -373,14 +444,19 @@ export function ItineraryProvider({ children }: { children: ReactNode }) {
     return record
   }, [])
 
-  const resetSample = useCallback(() => dispatch({ type: 'replace', trip: sampleTrip }), [])
+  const resetSample = useCallback(() => dispatch({ type: 'replace', trip: sampleTrip }), [dispatch])
 
   const value = useMemo(
     () => ({
       trip,
+      trips: library.trips,
       hotels,
       saveStatus,
       patch,
+      createItinerary,
+      openItinerary,
+      removeItinerary,
+      saveNow,
       setDays,
       updateDay,
       addDay,
@@ -401,9 +477,14 @@ export function ItineraryProvider({ children }: { children: ReactNode }) {
     }),
     [
       trip,
+      library.trips,
       hotels,
       saveStatus,
       patch,
+      createItinerary,
+      openItinerary,
+      removeItinerary,
+      saveNow,
       setDays,
       updateDay,
       addDay,
@@ -438,6 +519,11 @@ export function useOptionalItinerary() {
   return useContext(ItineraryContext)
 }
 
-export function readStoredTrip(): Trip {
-  return loadTrip()
+export function readStoredTrip(shareId?: string): Trip {
+  const library = loadLibrary()
+  if (shareId) {
+    const match = library.trips.find((item) => item.shareId === shareId)
+    if (match) return match
+  }
+  return library.trips.find((item) => item.id === library.activeId) ?? library.trips[0] ?? loadTrip()
 }

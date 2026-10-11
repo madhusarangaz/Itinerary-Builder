@@ -6,7 +6,10 @@ import { ItineraryTemplate } from './ItineraryTemplate'
 export function ShareItineraryPage() {
   const { shareId } = useParams()
   const ctx = useOptionalItinerary()
-  const stored = ctx?.trip ?? readStoredTrip()
+  const stored =
+    (shareId && ctx?.trips.find((item) => item.shareId === shareId)) ||
+    ctx?.trip ||
+    readStoredTrip(shareId)
   const trip = shareId ? { ...stored, shareId: stored.shareId || shareId } : stored
 
   return (

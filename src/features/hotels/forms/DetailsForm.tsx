@@ -4,7 +4,7 @@ import { SearchSelect } from '../../../components/ui/SearchSelect'
 import { InputField } from '../../../components/ui/InputField'
 import { TextAreaField } from '../../../components/ui/TextAreaField'
 import { STAR_OPTIONS } from '../../../data/hotel-catalog'
-import { useDestinations } from '../../../state/destination-store'
+import { liveDestinations, useDestinations } from '../../../state/destination-store'
 import { useHotelMaster } from '../../../state/hotel-store'
 import type { StarCategory } from '../../../types/hotel'
 import { SectionHead } from './shared'
@@ -36,7 +36,7 @@ export function DetailsForm() {
         optional
         placeholder="Search destinations…"
         value={hotel.destinationId ?? ''}
-        options={destinations.map((d) => ({ value: d.id, label: d.name || 'Untitled destination' }))}
+        options={liveDestinations(destinations).map((d) => ({ value: d.id, label: d.name }))}
         onChange={(destinationId) => {
           const match = destinations.find((d) => d.id === destinationId)
           patchActive({ destinationId, destinationName: match?.name || hotel.destinationName })

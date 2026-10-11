@@ -67,7 +67,7 @@ export function Sidebar({ askAi }: { askAi?: SidebarAskAi }) {
           className="mt-3 px-1 text-[11px] text-gray-400 underline"
           onClick={() => {
             if (!window.confirm('Reset prototype data? This clears records created in this browser and restores the demo set.')) return
-            ;['travelbuilding.destinations.v1', 'travelbuilding.hotel-master.v1', 'travelbuilding.hotels.v3', 'travelbuilding.activities.v1', 'travelbuilding.transport.v1', 'travelbuilding.suppliers.v1', 'travelbuilding.trip.v3', 'travelbuilding.costing.v2'].forEach((key) => localStorage.removeItem(key))
+            ;['travelbuilding.destinations.v1', 'travelbuilding.hotel-master.v1', 'travelbuilding.hotels.v3', 'travelbuilding.activities.v1', 'travelbuilding.transport.v1', 'travelbuilding.suppliers.v1', 'travelbuilding.trip.v3', 'travelbuilding.trips.v1', 'travelbuilding.costing.v2'].forEach((key) => localStorage.removeItem(key))
             window.location.reload()
           }}
         >

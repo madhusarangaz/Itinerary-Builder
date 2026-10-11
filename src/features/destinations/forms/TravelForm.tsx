@@ -59,7 +59,7 @@ export function TravelForm() {
   const { active: d, destinations, patchActive } = useDestinations()
   const [draft, setDraft] = useState<DestinationConnection | null>(null)
   const air = d.airportConnections[0]
-  const otherDestinations = destinations.filter((x) => x.id !== d.id)
+  const otherDestinations = destinations.filter((x) => x.id !== d.id && x.name.trim() && x.status === 'active')
 
   function patchAir(patch: Partial<AirportConnection>) {
     if (!air) {

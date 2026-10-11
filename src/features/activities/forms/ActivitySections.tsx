@@ -12,7 +12,7 @@ import { MoreDetails, SectionHead } from '../../destinations/forms/shared'
 import { newRoute } from '../../../lib/activity'
 import { uid } from '../../../lib/ids'
 import { useActivities } from '../../../state/activity-store'
-import { useDestinations } from '../../../state/destination-store'
+import { liveDestinations, useDestinations } from '../../../state/destination-store'
 import type { ActivitySectionId } from '../../../types/activity'
 
 function UsdField({ label, hint, value, onChange }: { label: string; hint: string; value: number; onChange: (n: number) => void }) {
@@ -39,7 +39,7 @@ function UsdField({ label, hint, value, onChange }: { label: string; hint: strin
 export function ActivitySections({ section }: { section: ActivitySectionId }) {
   const { active, patchActive } = useActivities()
   const { destinations } = useDestinations()
-  const places = destinations.map((d) => ({ value: d.id, label: d.name, hint: d.province }))
+  const places = liveDestinations(destinations).map((d) => ({ value: d.id, label: d.name, hint: d.province }))
   const endpoints = [{ value: AIRPORT_BIA.id, label: AIRPORT_BIA.name, hint: 'Airport' }, ...places]
 
   function setLocation(value: string) {

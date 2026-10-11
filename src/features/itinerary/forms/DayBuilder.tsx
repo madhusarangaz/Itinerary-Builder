@@ -27,7 +27,7 @@ import { addDays, formatLong, formatShort } from '../../../lib/dates'
 import { dayRemaining } from '../../../lib/completeness'
 import { revealFirstMissing } from '../missing-attention'
 import { uid } from '../../../lib/ids'
-import { useDestinations } from '../../../state/destination-store'
+import { liveDestinations, useDestinations } from '../../../state/destination-store'
 import { SearchSelect } from '../../../components/ui/SearchSelect'
 import {
   emptyMeals,
@@ -522,7 +522,7 @@ function DayWorkspace({ day, markMissing }: { day: Day; markMissing: boolean }) 
             placeholder="Search destinations…"
             attention={markMissing && !day.destination.trim()}
             value={day.destinationId || day.destination}
-            options={destinations.filter((row) => row.status !== 'archived').map((row) => ({ value: row.id, label: row.name }))}
+            options={liveDestinations(destinations).map((row) => ({ value: row.id, label: row.name }))}
             onChange={(value) => {
               const match = destinations.find((row) => row.id === value)
               updateDay(day.id, { destinationId: match?.id, destination: match?.name || value })

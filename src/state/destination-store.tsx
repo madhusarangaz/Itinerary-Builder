@@ -32,6 +32,11 @@ type Ctx = {
 
 const DestinationContext = createContext<Ctx | null>(null)
 
+/** Places that can be chosen on a live itinerary. Drafts and blank names stay out of the search. */
+export function liveDestinations(list: Destination[]) {
+  return list.filter((row) => row.status === 'active' && row.name.trim())
+}
+
 function loadAll(): Destination[] {
   try {
     const raw = localStorage.getItem(KEY)
@@ -50,13 +55,13 @@ function loadAll(): Destination[] {
               ? activities.map((activity) => activity.id)
               : []
           return { ...rest, activityIds }
-        })
+        }).filter((row) => row.name.trim())
       }
     }
   } catch {
     /* ignore */
   }
-  return sampleDestinations
+  return sampleDestinations.filter((row) => row.name.trim())
 }
 
 function reverseConnection(source: Destination, conn: DestinationConnection): DestinationConnection {

@@ -9,7 +9,7 @@ import { addedNightDates, applyJourneyDays, assignStayDays, journeyDelta, nights
 import { itineraryVersion, nextTourId, uid } from '../../../lib/ids'
 import { useItinerary } from '../../../state/itinerary-store'
 import { SearchSelect } from '../../../components/ui/SearchSelect'
-import { useDestinations } from '../../../state/destination-store'
+import { liveDestinations, useDestinations } from '../../../state/destination-store'
 import { useSuppliers } from '../../../state/supplier-store'
 import { useTransport } from '../../../state/transport-store'
 import { BaseButton } from '../../../components/ui/BaseButton'
@@ -113,9 +113,7 @@ export function TripDetailsForm({
     if (next.tourId || next.option || next.startPoint) patch(next)
   }, [patch, trip.option, trip.startPoint, trip.tourId, version])
 
-  const destinationOptions = destinations
-    .filter((row) => row.status !== 'archived')
-    .map((row) => ({ value: row.id, label: row.name }))
+  const destinationOptions = liveDestinations(destinations).map((row) => ({ value: row.id, label: row.name }))
   const expectedDays = calendarDays(trip.startDate, trip.endDate)
   const dateMismatch = expectedDays > 0 && trip.days.length !== expectedDays
   const nightCount = dateMismatch ? Math.max(trip.days.length - 1, 0) : trip.nights

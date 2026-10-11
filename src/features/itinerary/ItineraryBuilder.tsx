@@ -42,7 +42,7 @@ export function ItineraryBuilder({
   aiOpen?: boolean
   onAiOpenChange?: (open: boolean) => void
 }) {
-  const { trip, saveStatus } = useItinerary()
+  const { trip, saveStatus, saveNow } = useItinerary()
   const [section, setSection] = useState<SectionId>('details')
   const [detailsCue, setDetailsCue] = useState(0)
   const [reviewNights, setReviewNights] = useState(false)
@@ -217,9 +217,7 @@ export function ItineraryBuilder({
               showPrimary={Boolean(nextSection) || section === 'expert'}
               generateLabel={section === 'expert' ? 'Download as PDF' : 'Next'}
               generateIcon={section === 'expert' ? <Download size={15} /> : <ChevronRight size={15} />}
-              onSaveDraft={() => {
-                localStorage.setItem('travelbuilding.trip.v3', JSON.stringify(trip))
-              }}
+              onSaveDraft={saveNow}
               onGenerate={() => {
                 if (section === 'expert') {
                   generate()
