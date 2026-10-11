@@ -25,7 +25,7 @@ export function TransportSummary() {
 
   return (
     <div className="h-full overflow-auto bg-[#f2f2f2] p-4 dark:bg-[#1F1F20]">
-      <div className="rounded-xl border border-gray-100 bg-white p-4 dark:border-[#2C2A2A] dark:bg-[#1E1E20]">
+      <div className="rounded-xl border border-gray-100 bg-white p-4 dark:border-[#2C2A2A] dark:bg-[#0C0C0E]">
         <div className="mb-4 overflow-hidden rounded-lg bg-gray-100 dark:bg-zinc-800">
           {cover ? (
             <img src={cover} alt="" className="aspect-[16/9] w-full object-cover" />

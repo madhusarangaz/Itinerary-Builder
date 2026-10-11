@@ -1,8 +1,116 @@
-import { ChevronDown, X } from 'lucide-react'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { ArrowLeft, ChevronDown, X } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { SaveStatus } from '../../types/itinerary'
 
 export type ReadinessItem = { id: string; label: string }
+
+type TitlePhase = 'rest' | 'travel' | 'hold'
+
+function CrumbTitle({ text }: { text: string }) {
+  const outerRef = useRef<HTMLSpanElement>(null)
+  const innerRef = useRef<HTMLSpanElement>(null)
+  const distanceRef = useRef(0)
+  const [overflowing, setOverflowing] = useState(false)
+  const [offset, setOffset] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [phase, setPhase] = useState<TitlePhase>('rest')
+
+  useLayoutEffect(() => {
+    const outer = outerRef.current
+    const inner = innerRef.current
+    if (!outer || !inner) return
+    const measure = () => {
+      const extra = Math.ceil(inner.scrollWidth - outer.clientWidth)
+      distanceRef.current = extra > 8 ? extra : 0
+      setOverflowing(extra > 8)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(outer)
+    return () => observer.disconnect()
+  }, [text])
+
+  useEffect(() => {
+    setOffset(0)
+    setPhase('rest')
+    setDuration(0)
+    if (!overflowing) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    let cancel = false
+    let timer = 0
+    const later = (ms: number, run: () => void) => {
+      timer = window.setTimeout(() => {
+        if (!cancel) run()
+      }, ms)
+    }
+
+    const cycle = () => {
+      const distance = distanceRef.current
+      if (distance < 8) return
+      const travel = Math.min(5200, Math.max(1400, Math.round((distance / 42) * 1000)))
+      setPhase('travel')
+      setDuration(travel)
+      setOffset(distance)
+      later(travel, () => {
+        setPhase('hold')
+        later(1100, () => {
+          setPhase('travel')
+          setDuration(650)
+          setOffset(0)
+          later(650, () => {
+            setPhase('rest')
+            setDuration(0)
+            later(4500, cycle)
+          })
+        })
+      })
+    }
+
+    later(1000, cycle)
+    return () => {
+      cancel = true
+      window.clearTimeout(timer)
+    }
+  }, [overflowing, text])
+
+  const mask = !overflowing
+    ? undefined
+    : phase === 'hold'
+      ? 'linear-gradient(to right, transparent, #000 1.5rem)'
+      : phase === 'travel'
+        ? 'linear-gradient(to right, transparent, #000 1.15rem, #000 calc(100% - 1.15rem), transparent)'
+        : 'linear-gradient(to right, #000 calc(100% - 1.75rem), transparent)'
+
+  return (
+    <span className="group relative block w-max min-w-0 max-w-[12rem]">
+      <span
+        ref={outerRef}
+        className="block overflow-hidden font-medium text-gray-950 dark:text-white"
+        style={mask ? { maskImage: mask, WebkitMaskImage: mask } : undefined}
+      >
+        <span
+          ref={innerRef}
+          className="inline-block whitespace-nowrap"
+          style={{
+            transform: offset ? `translateX(-${offset}px)` : undefined,
+            transition: duration ? `transform ${duration}ms ease-in-out` : undefined,
+          }}
+        >
+          {text}
+        </span>
+      </span>
+      {overflowing ? (
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute top-full left-0 z-30 mt-1.5 hidden w-max max-w-sm rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium whitespace-normal text-gray-950 shadow-lg group-hover:block dark:border-[#2C2A2A] dark:bg-[#0C0C0E] dark:text-white"
+        >
+          {text}
+        </span>
+      ) : null}
+    </span>
+  )
+}
 
 export function BuilderHeader({
   saveStatus,
@@ -17,6 +125,9 @@ export function BuilderHeader({
   progress,
   progressLabel = 'Itinerary completion',
   readiness,
+  backLabel,
+  crumb,
+  blend = false,
 }: {
   saveStatus: SaveStatus
   onClose: () => void
@@ -37,11 +148,14 @@ export function BuilderHeader({
     readyLabel?: string
     hint?: string
   }
+  backLabel?: string
+  crumb?: { parent: string; current: string }
+  blend?: boolean
 }) {
   const label = saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Autosaved just now' : ''
   const readinessRoot = useRef<HTMLDivElement>(null)
   const items = readiness?.items ?? []
-  const shown = items.slice(0, 2)
+  const shown = items.slice(0, 1)
   const hidden = items.length - shown.length
 
   useEffect(() => {
@@ -61,11 +175,28 @@ export function BuilderHeader({
   }, [readiness])
 
   return (
-    <div className="sticky top-0 z-10 rounded-[16px] bg-white dark:bg-[#1E1E20]">
-      <div className="flex items-center justify-between gap-4 px-6 pt-4">
+    <div className={`sticky top-0 z-10 rounded-[16px] bg-white ${blend ? 'dark:bg-[#101012]' : 'dark:bg-[#0C0C0E]'}`}>
+      <div className="flex items-start justify-between gap-4 px-6 pt-4">
         <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-3">
-            <h2 className="shrink-0 text-base text-black dark:text-white">{title}</h2>
+          <div className="flex h-10 min-w-0 items-center gap-3">
+            {crumb ? (
+              <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="inline-flex shrink-0 items-center gap-1 text-gray-500 hover:text-gray-950 dark:text-zinc-400 dark:hover:text-white"
+                >
+                  <ArrowLeft size={14} />
+                  {crumb.parent}
+                </button>
+                <span className="text-gray-300 dark:text-zinc-600" aria-hidden>
+                  /
+                </span>
+                <CrumbTitle text={crumb.current} />
+              </nav>
+            ) : (
+              <h2 className="shrink-0 text-base text-black dark:text-white">{title}</h2>
+            )}
             {progress != null ? (
               <div className="flex shrink-0 items-center gap-2">
                 <div
@@ -77,7 +208,7 @@ export function BuilderHeader({
                   aria-label={progressLabel}
                 >
                   <div
-                    className="h-full rounded-full bg-gray-900 transition-[width] duration-300 dark:bg-orange-600"
+                    className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -111,7 +242,7 @@ export function BuilderHeader({
                   <ChevronDown size={14} className={readiness.open ? 'rotate-180' : ''} />
                 </button>
                 {readiness.open ? (
-                  <div className="absolute top-full left-0 z-30 mt-2 w-80 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-[#2C2A2A] dark:bg-[#1E1E20]">
+                  <div className="absolute top-full left-0 z-30 mt-2 w-80 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-[#2C2A2A] dark:bg-[#0C0C0E]">
                     <div className="border-b border-gray-100 px-3 py-2 dark:border-[#2C2A2A]">
                       <p className="text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase dark:text-zinc-500">Still open</p>
                       <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">{readiness.hint ?? 'Fill these in, then generate the PDF.'}</p>
@@ -136,7 +267,7 @@ export function BuilderHeader({
           </div>
           <p className="text-sm text-gray-500 opacity-70 dark:text-gray-400">{subtitle}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex h-10 shrink-0 items-center gap-3">
           {statusFirst && label ? <span className="hidden text-xs text-gray-400 sm:inline">{label}</span> : null}
           {actions}
           {!statusFirst && label ? <span className="hidden text-xs text-gray-400 sm:inline">{label}</span> : null}
@@ -145,9 +276,20 @@ export function BuilderHeader({
               {previewLabel}
             </button>
           )}
-          <button type="button" onClick={onClose} className="text-gray-950 hover:text-red-500 dark:text-white">
-            <X size={14} />
-          </button>
+          {crumb ? null : backLabel ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-[var(--accent-text)] shadow-sm hover:bg-gray-50 dark:border-[#3a3a3c] dark:bg-zinc-800 dark:hover:bg-zinc-700"
+            >
+              <ArrowLeft size={14} />
+              {backLabel}
+            </button>
+          ) : (
+            <button type="button" onClick={onClose} className="text-gray-950 hover:text-red-500 dark:text-white" aria-label="Close">
+              <X size={14} />
+            </button>
+          )}
         </div>
       </div>
       <hr className="my-2 border-gray-100 opacity-50 dark:border-gray-800" />

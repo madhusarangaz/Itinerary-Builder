@@ -1,44 +1,44 @@
 import {
   closestCenter,
   DndContext,
+  DragOverlay,
   PointerSensor,
+  useDraggable,
+  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ChevronDown, GripVertical, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { ChevronDown, GripVertical, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { BaseButton } from '../../../components/ui/BaseButton'
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog'
 import { Modal } from '../../../components/ui/Modal'
-import { useToast } from '../../../components/ui/Toast'
-import { PLACEMENT_LABEL, routeSummary } from '../../../data/activity-catalog'
+import { photos } from '../../../data/images'
 import { BaseSelect } from '../../../components/ui/BaseSelect'
-import { ImageUploader } from '../../../components/ui/ImageUploader'
+import { FieldAttention } from '../../../components/ui/FieldAttention'
+import { ImageSelect, type ImageChoice } from '../../../components/ui/ImageSelect'
 import { InputField } from '../../../components/ui/InputField'
 import { TextAreaField } from '../../../components/ui/TextAreaField'
-import { formatLong, formatShort } from '../../../lib/dates'
+import { addDays, formatLong, formatShort } from '../../../lib/dates'
 import { dayRemaining } from '../../../lib/completeness'
+import { revealFirstMissing } from '../missing-attention'
 import { uid } from '../../../lib/ids'
-import { useActivities } from '../../../state/activity-store'
 import { useDestinations } from '../../../state/destination-store'
-import { useHotelMaster } from '../../../state/hotel-store'
 import { SearchSelect } from '../../../components/ui/SearchSelect'
 import {
-  activityOpsFilled,
   emptyMeals,
   emptyPickup,
   emptyTravel,
-  STATUS_OPTIONS,
   TRANSPORT_OPTIONS,
   travellerFilled,
 } from '../../../lib/day-glance'
 import { useItinerary } from '../../../state/itinerary-store'
-import type { ActivityRecord } from '../../../types/activity'
-import type { HotelRecord } from '../../../types/hotel'
-import type { Activity, ActivityStatus, ActivityType, Day, DayMeals } from '../../../types/itinerary'
+import type { Destination } from '../../../types/destination'
+import type { Activity, ActivityType, Day, DayMeals } from '../../../types/itinerary'
 
 const TYPE_LABEL: Record<ActivityType, string> = {
   activity: 'Activity',
@@ -75,7 +75,7 @@ function MealChecks({ meals, onChange }: { meals: DayMeals; onChange: (next: Day
               type="checkbox"
               checked={meals[key]}
               onChange={(e) => onChange({ ...meals, [key]: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800"
+              className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)] focus:ring-[var(--accent)] dark:border-zinc-600 dark:bg-zinc-800"
             />
             {key[0].toUpperCase() + key.slice(1)}
           </label>
@@ -85,23 +85,26 @@ function MealChecks({ meals, onChange }: { meals: DayMeals; onChange: (next: Day
   )
 }
 
+const ACTIVITY_IMAGES: ImageChoice[] = [
+  { src: photos.temple, alt: 'Temple of the Tooth' },
+  { src: photos.sigiriya, alt: 'Sigiriya' },
+  { src: photos.tea, alt: 'Tea country' },
+]
+
 function SortableActivity({
   activity,
   onChange,
   onRemove,
-  onAddSub,
+  attention = false,
 }: {
   activity: Activity
   onChange: (p: Partial<Activity>) => void
   onRemove: () => void
-  onAddSub: () => void
+  attention?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: activity.id })
-  const hasOps = activityOpsFilled(activity)
   const [open, setOpen] = useState(false)
-  const [more, setMore] = useState(
-    Boolean(activity.extraCost?.trim() || activity.bookingRef?.trim() || activity.meetingPoint?.trim()),
-  )
+  const label = activity.kind === 'highlight' ? 'Highlight' : TYPE_LABEL[activity.type]
 
   return (
     <div
@@ -113,11 +116,12 @@ function SortableActivity({
         <button type="button" className="cursor-grab text-gray-400" {...attributes} {...listeners}>
           <GripVertical size={16} />
         </button>
-        <span className="w-16 shrink-0 text-[10px] font-medium tracking-[0.12em] text-gray-400 uppercase">{TYPE_LABEL[activity.type]}</span>
+        <span className="w-20 shrink-0 text-[10px] font-medium tracking-[0.12em] text-gray-400 uppercase">{label}</span>
         <InputField
           className="mb-0 min-w-0 flex-1"
           dense
-          aria-label={`${TYPE_LABEL[activity.type]} title`}
+          attention={attention}
+          aria-label={`${label} title`}
           placeholder={ITEM_PLACEHOLDER[activity.type]}
           value={activity.title}
           onChange={(e) => onChange({ title: e.target.value })}
@@ -127,125 +131,28 @@ function SortableActivity({
           type="button"
           className="text-gray-400 hover:text-gray-700 dark:hover:text-zinc-200"
           aria-expanded={open}
-          aria-label="Activity details"
-          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? `Collapse ${activity.title || label}` : `Expand ${activity.title || label}`}
+          onClick={() => setOpen((value) => !value)}
         >
-          <ChevronDown size={16} className={`transition ${open ? 'rotate-180' : ''} ${hasOps ? 'text-blue-500' : ''}`} />
+          <ChevronDown size={16} className={`transition ${open ? 'rotate-180' : ''}`} />
         </button>
-        <button type="button" className="text-gray-400 hover:text-red-500" onClick={onRemove}>
+        <button type="button" className="text-gray-400 hover:text-red-500" aria-label={`Remove ${activity.title || label}`} onClick={onRemove}>
           <Trash2 size={14} />
         </button>
       </div>
-      {activity.type === 'meal' ? (
-        <div className="mt-1 ml-7 flex flex-wrap gap-1">
-          {['Breakfast', 'Lunch', 'Dinner'].map((label) => (
-            <button
-              key={label}
-              type="button"
-              className={`rounded-full border px-2 py-0.5 text-[11px] ${activity.title === label ? 'border-gray-900 text-gray-900 dark:border-zinc-200 dark:text-zinc-100' : 'border-gray-200 text-gray-500 dark:border-[#2C2A2A] dark:text-zinc-400'}`}
-              onClick={() => onChange({ title: label })}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      {activity.type === 'activity' || activity.subActivities.length > 0 ? (
-        <div className="ml-7 space-y-0.5">
-          {activity.subActivities.map((s, i) => (
-            <InputField
-              key={s.id}
-              className="mb-0"
-              dense
-              aria-label="Sub activity"
-              placeholder="Type here"
-              value={s.title}
-              onChange={(e) => {
-                const next = activity.subActivities.map((x, idx) => (idx === i ? { ...x, title: e.target.value } : x))
-                onChange({ subActivities: next })
-              }}
-              startIcon={<Pencil size={13} strokeWidth={1.75} />}
-            />
-          ))}
-        </div>
-      ) : null}
-      {activity.type === 'activity' ? (
-        <button
-          type="button"
-          className="ml-7 mt-1 text-xs text-gray-500 hover:text-gray-800 dark:text-zinc-400 dark:hover:text-zinc-100"
-          onClick={onAddSub}
-        >
-          + Add sub activity
-        </button>
-      ) : null}
-      {open && (
-        <div className="mt-2 ml-7 border-t border-gray-200 pt-2 dark:border-[#2C2A2A]">
-          <div className="grid grid-cols-2 gap-3">
-            <InputField
-              className="mb-2"
-              label="Time"
-              optional
-              placeholder="8:30 AM"
-              value={activity.time ?? ''}
-              onChange={(e) => onChange({ time: e.target.value })}
-            />
-            <BaseSelect
-              className="mb-2"
-              label="Status"
-              optional
-              placeholder="Select"
-              options={STATUS_OPTIONS}
-              value={activity.status ?? ''}
-              onChange={(e) => onChange({ status: e.target.value as ActivityStatus | '' })}
-            />
-          </div>
+      {open ? (
+        <div className="mt-2">
           <TextAreaField
             className="mb-2"
-            label="Notes"
-            optional
             rows={2}
-            placeholder="Morning climb before travelling to Kandy"
-            value={activity.notes ?? ''}
-            onChange={(e) => onChange({ notes: e.target.value })}
+            aria-label={`${label} description`}
+            placeholder="A short description"
+            value={activity.description}
+            onChange={(e) => onChange({ description: e.target.value })}
           />
-          {more ? (
-            <div className="grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3">
-              <InputField
-                className="mb-2"
-                label="Additional cost"
-                optional
-                placeholder="From USD 40"
-                value={activity.extraCost ?? ''}
-                onChange={(e) => onChange({ extraCost: e.target.value })}
-              />
-              <InputField
-                className="mb-2"
-                label="Booking reference"
-                optional
-                placeholder="Confirmation no."
-                value={activity.bookingRef ?? ''}
-                onChange={(e) => onChange({ bookingRef: e.target.value })}
-              />
-              <InputField
-                className="mb-0 sm:col-span-2"
-                label="Meeting point"
-                optional
-                placeholder="Hotel lobby"
-                value={activity.meetingPoint ?? ''}
-                onChange={(e) => onChange({ meetingPoint: e.target.value })}
-              />
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="text-xs text-gray-500 hover:text-gray-800 dark:text-zinc-400 dark:hover:text-zinc-100"
-              onClick={() => setMore(true)}
-            >
-              + More details
-            </button>
-          )}
+          <ImageSelect value={activity.image ?? ''} options={ACTIVITY_IMAGES} onChange={(image) => onChange({ image })} />
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
@@ -403,393 +310,302 @@ function TravellerInfo({ day }: { day: Day }) {
   )
 }
 
-function ActivityPicker({
-  day,
-  master,
-  open,
-  onClose,
-  onAdd,
-  onCustom,
-}: {
-  day: Day
-  master: ActivityRecord[]
-  open: boolean
-  onClose: () => void
-  onAdd: (source: { activityId: string; title: string; description: string }) => void
-  onCustom: () => void
-}) {
-  const { notify } = useToast()
-  const [query, setQuery] = useState('')
-  const place = day.destination.trim().toLowerCase()
-  const taken = new Set(day.activities.map((item) => item.activityId).filter(Boolean))
-  const available = master.filter((item) => item.status === 'active' && !taken.has(item.id))
-  const suggested = available.filter(
-    (item) => item.type === 'within_destination' && (item.locationId === day.destinationId || item.locationName.toLowerCase() === place),
-  )
-  const q = query.trim().toLowerCase()
-  const results = (q
-    ? available.filter((item) =>
-        [item.name, item.locationName, PLACEMENT_LABEL[item.type], routeSummary(item)].join(' ').toLowerCase().includes(q),
-      )
-    : suggested
-  ).slice().sort((a, b) => {
-    const aHere = suggested.some((item) => item.id === a.id) ? 0 : 1
-    const bHere = suggested.some((item) => item.id === b.id) ? 0 : 1
-    return aHere - bHere || a.name.localeCompare(b.name)
-  })
-  const destinationLabel = day.destination.trim() || 'this destination'
+type LibraryCard = {
+  id: string
+  title: string
+  description: string
+  image: string
+  kind: 'activity' | 'highlight'
+}
 
-  useEffect(() => {
-    if (open) setQuery('')
-  }, [open])
+const LIBRARY_ACTIVITIES: LibraryCard[] = [
+  { id: 'proto-tooth', title: 'Temple of the Tooth', description: 'Visit the Temple of the Sacred Tooth Relic in Kandy.', image: photos.temple, kind: 'activity' },
+  { id: 'proto-garden', title: 'Royal Botanical Garden', description: 'A slow walk through the lawns and orchids at Peradeniya.', image: photos.tea, kind: 'activity' },
+  { id: 'proto-show', title: 'Kandyan Cultural Show', description: 'An evening of Kandyan dance and drumming.', image: photos.kandy, kind: 'activity' },
+  { id: 'proto-puja', title: 'Evening puja', description: 'The evening ritual at the temple.', image: photos.temple, kind: 'activity' },
+  { id: 'proto-lake', title: 'Kandy Lake walk', description: 'A walk around the lake as the light fades.', image: photos.kandy, kind: 'activity' },
+]
 
-  function choose(item: ActivityRecord) {
-    onAdd({ activityId: item.id, title: item.name, description: item.description || '' })
-    notify(`Activity added to Day ${String(day.dayNumber).padStart(2, '0')}.`)
-    onClose()
+const LIBRARY_HIGHLIGHTS: LibraryCard[] = [
+  { id: 'proto-hl-sunrise', title: 'Sunrise over the lake', description: 'The lake catches the first light before the city wakes.', image: photos.kandy, kind: 'highlight' },
+  { id: 'proto-hl-dancers', title: 'Dancers at dusk', description: 'Kandyan dancers take the stage as the day cools.', image: photos.tea, kind: 'highlight' },
+  { id: 'proto-hl-spice', title: 'Spice garden aromas', description: 'Cinnamon, clove, and cardamom still warm from the sun.', image: photos.sigiriya, kind: 'highlight' },
+  { id: 'proto-hl-train', title: 'Hill-country train', description: 'Tea hills sliding past the carriage window.', image: photos.train, kind: 'highlight' },
+  { id: 'proto-hl-tea', title: 'Tea pluckers on the slope', description: 'Baskets filling along the bright green rows.', image: photos.tea, kind: 'highlight' },
+]
+
+function generatedDayTitle(day: Day) {
+  const written = day.title.trim()
+  if (written) return written
+  const place = day.destination.trim()
+  if (place) return `A day in ${place}`
+  return 'Generated from the destination'
+}
+
+function destinationImages(destination: Destination | undefined): ImageChoice[] {
+  const picked: ImageChoice[] = []
+  const seen = new Set<string>()
+  function push(src?: string, alt?: string) {
+    if (!src || seen.has(src) || picked.length >= 3) return
+    seen.add(src)
+    picked.push({ src, alt })
   }
-
-  return (
-    <Modal
-      open={open}
-      title="Add activity"
-      subtitle={day.destination.trim() ? `Day ${String(day.dayNumber).padStart(2, '0')} · ${day.destination}` : `Day ${String(day.dayNumber).padStart(2, '0')}`}
-      onClose={onClose}
-      footer={
-        <button type="button" className="text-sm font-medium text-gray-800 hover:text-gray-950 dark:text-zinc-100" onClick={() => { onCustom(); onClose() }}>
-          + Add Custom Activity
-        </button>
-      }
-    >
-      <div className="relative mb-4">
-        <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search activities..."
-          className="h-10 w-full rounded-lg border border-gray-200 bg-white pr-3 pl-9 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-transparent dark:bg-zinc-800 dark:text-zinc-100"
-        />
-      </div>
-      <p className="mb-2 text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase">
-        {q ? 'Activity master' : `Suggested for ${destinationLabel}`}
-      </p>
-      {results.length ? (
-        <ul className="space-y-1">
-          {results.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/5"
-                onClick={() => choose(item)}
-              >
-                <span>
-                  <span className="block text-sm text-gray-900 dark:text-zinc-100">{item.name}</span>
-                  <span className="block text-xs text-gray-400">{routeSummary(item)}</span>
-                </span>
-                <span className="shrink-0 text-[11px] text-gray-400">{PLACEMENT_LABEL[item.type]}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="py-6 text-center text-sm text-gray-400">
-          {q ? 'No activities match that search.' : `No activities for ${destinationLabel}. Search the full library above.`}
-        </p>
-      )}
-    </Modal>
-  )
+  if (destination) {
+    push(destination.coverImage?.url, destination.coverImage?.alt || destination.name)
+    for (const image of destination.gallery) push(image.url, image.alt || image.caption || destination.name)
+  }
+  push(photos.kandy, 'Kandy')
+  push(photos.sigiriya, 'Sigiriya')
+  push(photos.temple, 'Temple of the Tooth')
+  return picked
 }
 
-function HotelPicker({
-  day,
-  hotels,
-  open,
-  onClose,
-  onAdd,
-  onCustom,
-}: {
-  day: Day
-  hotels: HotelRecord[]
-  open: boolean
-  onClose: () => void
-  onAdd: (hotel: HotelRecord) => void
-  onCustom: () => void
-}) {
-  const { notify } = useToast()
-  const [query, setQuery] = useState('')
-  const place = day.destination.trim().toLowerCase()
-  const taken = new Set(day.activities.filter((item) => item.type === 'hotel').map((item) => item.title.trim().toLowerCase()))
-  const available = hotels.filter((hotel) => hotel.status === 'active' && hotel.name.trim() && !taken.has(hotel.name.trim().toLowerCase()))
-  const here = available.filter(
-    (hotel) =>
-      (Boolean(day.destinationId) && hotel.destinationId === day.destinationId) ||
-      (Boolean(place) && (hotel.destinationName ?? '').toLowerCase() === place),
-  )
-  const q = query.trim().toLowerCase()
-  const results = (q
-    ? available.filter((hotel) => [hotel.name, hotel.destinationName, hotel.address].join(' ').toLowerCase().includes(q))
-    : here
-  ).slice().sort((a, b) => {
-    const aHere = here.some((hotel) => hotel.id === a.id) ? 0 : 1
-    const bHere = here.some((hotel) => hotel.id === b.id) ? 0 : 1
-    return aHere - bHere || a.name.localeCompare(b.name)
+function LibraryChip({ item, taken }: { item: LibraryCard; taken: boolean }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `lib:${item.id}`,
+    data: { library: item },
+    disabled: taken,
   })
-  const destinationLabel = day.destination.trim() || 'this destination'
-
-  useEffect(() => {
-    if (open) setQuery('')
-  }, [open])
-
   return (
-    <Modal
-      open={open}
-      title="Add hotel"
-      subtitle={day.destination.trim() ? `Day ${String(day.dayNumber).padStart(2, '0')} · ${day.destination}` : `Day ${String(day.dayNumber).padStart(2, '0')}`}
-      onClose={onClose}
-      footer={
-        <button type="button" className="text-sm font-medium text-gray-800 hover:text-gray-950 dark:text-zinc-100" onClick={() => { onCustom(); onClose() }}>
-          + Add Custom Hotel
-        </button>
-      }
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={`flex min-w-0 items-center gap-2 rounded-xl border px-2.5 py-2.5 text-sm ${
+        taken
+          ? 'cursor-default border-gray-100 bg-gray-50 text-gray-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-500'
+          : 'cursor-grab border-gray-200 bg-white text-gray-800 active:cursor-grabbing dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100'
+      } ${isDragging ? 'opacity-40' : ''}`}
     >
-      <div className="relative mb-4">
-        <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search hotels..."
-          className="h-10 w-full rounded-lg border border-gray-200 bg-white pr-3 pl-9 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-transparent dark:bg-zinc-800 dark:text-zinc-100"
-        />
-      </div>
-      <p className="mb-2 text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase">
-        {q ? 'Hotel master' : `Hotels in ${destinationLabel}`}
-      </p>
-      {results.length ? (
-        <ul className="space-y-1">
-          {results.map((hotel) => (
-            <li key={hotel.id}>
-              <button
-                type="button"
-                className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-white/5"
-                onClick={() => {
-                  onAdd(hotel)
-                  notify(`Hotel added to Day ${String(day.dayNumber).padStart(2, '0')}.`)
-                  onClose()
-                }}
-              >
-                <span>
-                  <span className="block text-sm text-gray-900 dark:text-zinc-100">{hotel.name}</span>
-                  <span className="block text-xs text-gray-400">{hotel.destinationName || hotel.address.split('\n')[0] || '—'}</span>
-                </span>
-                <span className="shrink-0 text-[11px] text-gray-400">{hotel.starCategory ? `${hotel.starCategory} Star` : ''}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="py-6 text-center text-sm text-gray-400">
-          {q ? 'No hotels match that search.' : `No hotels for ${destinationLabel}. Search the full library above.`}
-        </p>
-      )}
-    </Modal>
-  )
-}
-
-function ActivitySuggestions({
-  day,
-  master,
-  onAdd,
-}: {
-  day: Day
-  master: ActivityRecord[]
-  onAdd: (source: { activityId: string; title: string; description: string }) => void
-}) {
-  const place = day.destination.trim().toLowerCase()
-  const taken = new Set(day.activities.map((a) => a.activityId).filter(Boolean))
-  const here = master.filter((a) => a.status === 'active' && a.type === 'within_destination' && (a.locationId === day.destinationId || a.locationName.toLowerCase() === place) && !taken.has(a.id))
-  const from = (day.travel?.from || '').trim().toLowerCase()
-  const to = (day.travel?.to || day.destination).trim().toLowerCase()
-  const enRoute = master.filter(
-    (a) =>
-      a.status === 'active' &&
-      a.type === 'en_route' &&
-      !taken.has(a.id) &&
-      a.applicableRoutes.some((route) => {
-        const start = route.fromLocationName.toLowerCase()
-        const end = route.toLocationName.toLowerCase()
-        return !!from && start.includes(from) && end.includes(to)
-      }),
-  )
-  if (!here.length && !enRoute.length) return null
-  return (
-    <div className="mt-3 space-y-2">
-      {here.length ? (
-        <div>
-          <p className="mb-1 text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase">Suggested activities</p>
-          <div className="flex flex-wrap gap-2">
-            {here.slice(0, 6).map((a) => (
-              <button key={a.id} type="button" className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-700 dark:border-[#2C2A2A] dark:text-zinc-200" onClick={() => onAdd({ activityId: a.id, title: a.name, description: a.description || '' })}>
-                {a.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      {enRoute.length ? (
-        <div>
-          <p className="mb-1 text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase">En-route experiences</p>
-          <div className="flex flex-wrap gap-2">
-            {enRoute.slice(0, 4).map((a) => (
-              <button key={a.id} type="button" className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-700 dark:border-[#2C2A2A] dark:text-zinc-200" onClick={() => onAdd({ activityId: a.id, title: a.name, description: a.description || '' })}>
-                {a.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <GripVertical size={14} className="shrink-0 text-gray-400" />
+      <span className="min-w-0 truncate">{item.title}</span>
     </div>
   )
 }
 
-function DayWorkspace({ day }: { day: Day }) {
-  const { updateDay, addActivity, addFromMaster, updateActivity, removeActivity, reorderActivities, addSubActivity } =
-    useItinerary()
-  const { activities: master } = useActivities()
-  const { destinations } = useDestinations()
-  const { hotels } = useHotelMaster()
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [hotelPickerOpen, setHotelPickerOpen] = useState(false)
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
-  const missing = dayRemaining(day)
-
-  function onDragEnd(e: DragEndEvent) {
-    const { active, over } = e
-    if (!over || active.id === over.id) return
-    const ids = day.activities.map((a) => a.id)
-    const oldIndex = ids.indexOf(String(active.id))
-    const newIndex = ids.indexOf(String(over.id))
-    reorderActivities(day.id, arrayMove(day.activities, oldIndex, newIndex))
-  }
-
+function LibraryRow({ label, items, taken }: { label: string; items: LibraryCard[]; taken: Set<string> }) {
   return (
-    <div id={`form-day-${day.id}`} className="flex min-h-0 min-w-0 flex-1 flex-col xl:flex-row">
-      <div className="min-h-0 w-full overflow-y-auto border-b border-gray-100 px-5 py-4 xl:w-[400px] xl:shrink-0 xl:border-r xl:border-b-0 dark:border-[#2C2A2A]">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase dark:text-zinc-500">
-              Day {String(day.dayNumber).padStart(2, '0')}
-            </p>
-            <h3 className="mt-1 text-base font-semibold text-gray-900 dark:text-white">{day.destination || 'Add destination'}</h3>
-            <p className="text-xs text-gray-400">{formatLong(day.date)}</p>
-          </div>
-          {missing.length === 0 ? (
-            <span className="text-sm text-emerald-600">✓</span>
-          ) : (
-            <span className="text-xs text-gray-400">{missing.length} remaining</span>
-          )}
-        </div>
-        <div className="flex flex-col">
-            <SearchSelect
-              label="Destination"
-              placeholder="Search destinations…"
-              value={day.destinationId || day.destination}
-              options={destinations.filter((row) => row.status !== 'archived').map((row) => ({ value: row.id, label: row.name }))}
-              onChange={(value) => {
-                const match = destinations.find((row) => row.id === value)
-                updateDay(day.id, { destinationId: match?.id, destination: match?.name || value })
-              }}
-            />
-            <InputField label="Day title" value={day.title} onChange={(e) => updateDay(day.id, { title: e.target.value })} />
-          </div>
-          <ImageUploader
-            label="Upload destination image"
-            className="mb-2"
-            aspect="h-[220px]"
-            value={day.image}
-            onChange={(url) => updateDay(day.id, { image: url })}
-            onRemove={() => updateDay(day.id, { image: '' })}
-          />
-          <TravellerInfo day={day} />
+    <div>
+      <p className="mb-2 text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase dark:text-zinc-500">{label}</p>
+      <div className="grid grid-cols-2 gap-2">
+        {items.map((item) => (
+          <LibraryChip key={item.id} item={item} taken={taken.has(item.id)} />
+        ))}
       </div>
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-5 py-4">
-        <p className="mb-3 text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase dark:text-zinc-500">Activities</p>
-        <div className="flex flex-wrap gap-2">
-          <BaseButton size="sm" variant="secondary" onClick={() => setPickerOpen(true)}>
-            + Activity
-          </BaseButton>
-          <BaseButton size="sm" variant="secondary" onClick={() => addActivity(day.id, 'transfer')}>
-            + Transfer
-          </BaseButton>
-          <BaseButton size="sm" variant="secondary" onClick={() => addActivity(day.id, 'meal')}>
-            + Meal
-          </BaseButton>
-          <BaseButton size="sm" variant="secondary" onClick={() => setHotelPickerOpen(true)}>
-            + Hotel
-          </BaseButton>
-          <BaseButton size="sm" variant="secondary" onClick={() => addActivity(day.id, 'note')}>
-            + Note
-          </BaseButton>
-        </div>
-        <ActivityPicker
-          day={day}
-          master={master}
-          open={pickerOpen}
-          onClose={() => setPickerOpen(false)}
-          onAdd={(source) => addFromMaster(day.id, source)}
-          onCustom={() => addActivity(day.id, 'activity')}
-        />
-        <HotelPicker
-          day={day}
-          hotels={hotels}
-          open={hotelPickerOpen}
-          onClose={() => setHotelPickerOpen(false)}
-          onAdd={(hotel) => {
-            updateDay(day.id, {
-              activities: [
-                ...day.activities,
-                {
-                  id: uid('act'),
-                  type: 'hotel',
-                  title: hotel.name,
-                  description: '',
-                  subActivities: [],
-                  sortOrder: day.activities.length,
-                },
-              ],
-            })
-          }}
-          onCustom={() => addActivity(day.id, 'hotel')}
-        />
-        <ActivitySuggestions day={day} master={master} onAdd={(source) => addFromMaster(day.id, source)} />
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <SortableContext items={day.activities.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-            <div className="mt-3 space-y-2">
+    </div>
+  )
+}
+
+function DayPlan({
+  day,
+  markMissing,
+  needsActivity,
+}: {
+  day: Day
+  markMissing: boolean
+  needsActivity: boolean
+}) {
+  const { updateActivity, removeActivity } = useItinerary()
+  const { setNodeRef, isOver } = useDroppable({ id: `day-drop-${day.id}` })
+  return (
+    <div className="mt-4">
+      <p className="mb-2 text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase dark:text-zinc-500">On this day</p>
+      <FieldAttention on={markMissing && needsActivity}>
+        <div
+          ref={setNodeRef}
+          className={`rounded-xl ${isOver ? 'bg-[#F9FBFF] ring-2 ring-[#E7EFFF] dark:bg-[#5b93ff]/10 dark:ring-[#5b93ff]/30' : ''}`}
+        >
+          <SortableContext items={day.activities.map((activity) => activity.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
               {day.activities.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400 dark:border-[#2C2A2A]">
-                  Nothing on this day yet.
+                  Drop an activity or highlight here.
                 </p>
               ) : null}
               {day.activities.map((activity) => (
                 <SortableActivity
                   key={activity.id}
                   activity={activity}
-                  onChange={(p) => updateActivity(day.id, activity.id, p)}
+                  attention={markMissing && needsActivity && !activity.title.trim()}
+                  onChange={(patch) => updateActivity(day.id, activity.id, patch)}
                   onRemove={() => removeActivity(day.id, activity.id)}
-                  onAddSub={() => addSubActivity(day.id, activity.id)}
                 />
               ))}
+              {day.activities.length > 0 ? (
+                <p className="rounded-lg border border-dashed border-gray-200 px-3 py-2 text-center text-xs text-gray-400 dark:border-[#2C2A2A]">
+                  Drag another activity or highlight here.
+                </p>
+              ) : null}
             </div>
           </SortableContext>
-        </DndContext>
-      </div>
+        </div>
+      </FieldAttention>
     </div>
   )
 }
 
-export function DayBuilder({ focusDayId }: { focusDayId?: string }) {
+function DayWorkspace({ day, markMissing }: { day: Day; markMissing: boolean }) {
+  const { updateDay, reorderActivities } = useItinerary()
+  const { destinations } = useDestinations()
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+  const [dragging, setDragging] = useState<LibraryCard | null>(null)
+  const missing = dayRemaining(day)
+  const needsActivity = day.activities.every((activity) => !activity.title.trim())
+  const destination = destinations.find((row) => row.id === day.destinationId || row.name === day.destination)
+  const taken = new Set(day.activities.map((activity) => activity.activityId).filter((id): id is string => Boolean(id)))
+
+  function onDragStart(event: DragStartEvent) {
+    const library = event.active.data.current?.library as LibraryCard | undefined
+    setDragging(library ?? null)
+  }
+
+  function onDragEnd(event: DragEndEvent) {
+    setDragging(null)
+    const library = event.active.data.current?.library as LibraryCard | undefined
+    const overId = event.over ? String(event.over.id) : ''
+    if (library) {
+      const onDay = overId === `day-drop-${day.id}` || day.activities.some((activity) => activity.id === overId)
+      if (!onDay || taken.has(library.id)) return
+      updateDay(day.id, {
+        activities: [
+          ...day.activities,
+          {
+            id: uid('act'),
+            type: 'activity',
+            title: library.title,
+            description: library.description,
+            image: library.image,
+            activityId: library.id,
+            kind: library.kind === 'highlight' ? 'highlight' : undefined,
+            status: 'included',
+            subActivities: [],
+            sortOrder: day.activities.length,
+          },
+        ],
+      })
+      return
+    }
+    if (!event.over || event.active.id === event.over.id) return
+    const ids = day.activities.map((activity) => activity.id)
+    const oldIndex = ids.indexOf(String(event.active.id))
+    const newIndex = ids.indexOf(String(event.over.id))
+    if (oldIndex < 0 || newIndex < 0) return
+    reorderActivities(day.id, arrayMove(day.activities, oldIndex, newIndex))
+  }
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragCancel={() => setDragging(null)}
+    >
+      <div id={`form-day-${day.id}`} className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
+        <div className="min-h-0 w-full overflow-y-auto border-b border-gray-100 px-5 py-4 lg:w-1/2 lg:border-r lg:border-b-0 dark:border-[#2C2A2A]">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase dark:text-zinc-500">
+                Day {String(day.dayNumber).padStart(2, '0')}
+              </p>
+              <h3 className="mt-1 text-base font-semibold text-gray-900 dark:text-white">{day.destination || 'Add destination'}</h3>
+              <p className="text-xs text-gray-400">{formatLong(day.date)}</p>
+            </div>
+            {missing.length === 0 ? (
+              <span className="text-sm text-emerald-600">✓</span>
+            ) : (
+              <span className="text-xs text-gray-400">{missing.length} remaining</span>
+            )}
+          </div>
+          <SearchSelect
+            label="Destination"
+            placeholder="Search destinations…"
+            attention={markMissing && !day.destination.trim()}
+            value={day.destinationId || day.destination}
+            options={destinations.filter((row) => row.status !== 'archived').map((row) => ({ value: row.id, label: row.name }))}
+            onChange={(value) => {
+              const match = destinations.find((row) => row.id === value)
+              updateDay(day.id, { destinationId: match?.id, destination: match?.name || value })
+            }}
+          />
+          <div className="mb-3">
+            <p className="mb-1.5 text-sm font-normal text-gray-800 dark:text-zinc-100">Day title</p>
+            <p className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-pink-400/15 to-blue-500/15 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-zinc-200">
+              <Sparkles size={12} className="shrink-0 text-pink-400" />
+              <span className="truncate">{generatedDayTitle(day)}</span>
+            </p>
+          </div>
+          <p className="mb-2 text-sm text-gray-800 dark:text-zinc-100">Destination image</p>
+          <FieldAttention on={markMissing && !day.image}>
+            <ImageSelect value={day.image} options={destinationImages(destination)} onChange={(image) => updateDay(day.id, { image })} />
+          </FieldAttention>
+          <DayPlan day={day} markMissing={markMissing} needsActivity={needsActivity} />
+          <TravellerInfo day={day} />
+        </div>
+        <div className="min-h-0 w-full space-y-5 overflow-y-auto px-5 py-4 lg:w-1/2">
+          <LibraryRow label="Activities" items={LIBRARY_ACTIVITIES} taken={taken} />
+          <LibraryRow label="Highlights" items={LIBRARY_HIGHLIGHTS} taken={taken} />
+        </div>
+      </div>
+      <DragOverlay>
+        {dragging ? (
+          <div className="flex w-40 items-center gap-2 rounded-xl border border-gray-200 bg-white px-2.5 py-2 text-sm text-gray-800 shadow-lg dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+            <GripVertical size={14} className="shrink-0 text-gray-400" />
+            <span className="truncate">{dragging.title}</span>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  )
+}
+
+export function DayBuilder({
+  focusDayId,
+  attentionToken = 0,
+  onAttentionHandled,
+  onNightsAdded,
+}: {
+  focusDayId?: string
+  attentionToken?: number
+  onAttentionHandled?: () => void
+  onNightsAdded?: () => void
+}) {
   const { trip, addDay, removeDay } = useItinerary()
   const [openId, setOpenId] = useState<string | null>(focusDayId ?? trip.days[0]?.id ?? null)
+  const [markMissing, setMarkMissing] = useState(false)
   const [dayPending, setDayPending] = useState<{ id: string; label: string } | null>(null)
+  const [addPrompt, setAddPrompt] = useState(false)
+  const nextEnd = trip.startDate ? addDays(trip.startDate, Math.max(trip.days.length - 1, 0) + 1) : ''
+
+  function requestAddDay() {
+    if (trip.days.length === 0) {
+      addDay()
+      return
+    }
+    setAddPrompt(true)
+  }
+
+  function confirmAddDay() {
+    addDay()
+    setAddPrompt(false)
+    onNightsAdded?.()
+  }
+
+  useEffect(() => {
+    if (!attentionToken) return
+    const first = trip.days.find((day) => dayRemaining(day).length)
+    if (!first) {
+      onAttentionHandled?.()
+      return
+    }
+    setOpenId(first.id)
+    setMarkMissing(true)
+    const handle = window.setTimeout(() => {
+      revealFirstMissing(document.getElementById(`form-day-${first.id}`))
+      onAttentionHandled?.()
+    }, 80)
+    return () => window.clearTimeout(handle)
+  }, [attentionToken, onAttentionHandled, trip.days])
 
   useEffect(() => {
     if (focusDayId) setOpenId(focusDayId)
@@ -809,7 +625,7 @@ export function DayBuilder({ focusDayId }: { focusDayId?: string }) {
           <p className="text-[10px] font-medium tracking-[0.18em] text-gray-400 uppercase dark:text-zinc-500">Days</p>
           <button
             type="button"
-            onClick={addDay}
+            onClick={requestAddDay}
             className="inline-flex items-center gap-1 text-xs font-medium text-gray-700 hover:text-gray-950 dark:text-zinc-200 dark:hover:text-white"
           >
             <Plus size={13} /> Add
@@ -827,45 +643,69 @@ export function DayBuilder({ focusDayId }: { focusDayId?: string }) {
           ) : (
             trip.days.map((day) => {
               const selectedDay = day.id === openId
-              const count = day.activities.length
+              const dayLabel = `Day ${String(day.dayNumber).padStart(2, '0')}`
               return (
                 <div
                   key={day.id}
-                  className={`flex items-start rounded-lg ${selectedDay ? 'bg-gray-900 text-white dark:bg-[#7A3714]' : 'hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                  className={`flex items-start rounded-lg ${selectedDay ? 'bg-[#E7EFFF] text-[#14357A] dark:bg-white/10 dark:text-white' : 'hover:bg-[#F3F7FF] dark:hover:bg-white/5'}`}
                 >
                   <button type="button" onClick={() => setOpenId(day.id)} className="min-w-0 flex-1 px-3 py-2.5 text-left">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`text-[11px] tracking-wide ${selectedDay ? 'text-white/70' : 'text-gray-400'}`}>
-                        DAY {String(day.dayNumber).padStart(2, '0')}
-                      </span>
-                      <span className={`text-[11px] ${selectedDay ? 'text-white/60' : 'text-gray-400'}`}>{formatShort(day.date)}</span>
-                    </div>
-                    <div className={`mt-0.5 truncate text-sm ${selectedDay ? 'text-white' : 'text-gray-900 dark:text-zinc-100'}`}>
+                    <span className={`text-[11px] tracking-wide ${selectedDay ? 'text-[#14357A]/70 dark:text-white/70' : 'text-gray-400'}`}>
+                      {dayLabel.toUpperCase()}
+                    </span>
+                    <div className={`mt-0.5 truncate text-sm ${selectedDay ? 'text-[#14357A] dark:text-white' : 'text-gray-900 dark:text-zinc-100'}`}>
                       {day.destination || 'Add destination'}
                     </div>
-                    <div className={`truncate text-xs ${selectedDay ? 'text-white/70' : 'text-gray-400'}`}>
-                      {day.title || 'Untitled'} · {count} {count === 1 ? 'item' : 'items'}
-                    </div>
+                    <div className={`text-[11px] ${selectedDay ? 'text-[#14357A]/60 dark:text-white/60' : 'text-gray-400'}`}>{formatShort(day.date)}</div>
                   </button>
-                  <button
-                    type="button"
-                    aria-label={`Delete day ${String(day.dayNumber).padStart(2, '0')}`}
-                    className={`mt-2 mr-1 rounded p-1 ${selectedDay ? 'text-white/70 hover:bg-white/10 hover:text-white' : 'text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40'}`}
-                    onClick={() => setDayPending({ id: day.id, label: `Day ${String(day.dayNumber).padStart(2, '0')}` })}
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  <div className="mt-1.5 mr-1 flex shrink-0 items-center">
+                    <button
+                      type="button"
+                      aria-label={`Delete ${dayLabel}`}
+                      className={`rounded p-1 ${selectedDay ? 'text-[#14357A]/60 hover:bg-[#14357A]/10 hover:text-[#14357A] dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white' : 'text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40'}`}
+                      onClick={() => setDayPending({ id: day.id, label: dayLabel })}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               )
             })
           )}
+          {trip.days.length > 0 ? (
+            <button
+              type="button"
+              onClick={requestAddDay}
+              className="mt-1 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-gray-200 py-2 text-xs font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-200"
+            >
+              <Plus size={13} /> Add
+            </button>
+          ) : null}
         </div>
       </div>
       {selected ? (
-        <DayWorkspace day={selected} />
+        <DayWorkspace day={selected} markMissing={markMissing} />
       ) : (
         <div className="flex flex-1 items-center justify-center text-sm text-gray-400">Select a day to edit it.</div>
       )}
+      <Modal
+        open={addPrompt}
+        title="Add a day"
+        size="sm"
+        onClose={() => setAddPrompt(false)}
+        footer={
+          <>
+            <BaseButton variant="secondary" onClick={() => setAddPrompt(false)}>
+              Not now
+            </BaseButton>
+            <BaseButton onClick={confirmAddDay}>Update dates</BaseButton>
+          </>
+        }
+      >
+        <p className="text-sm text-gray-600 dark:text-zinc-300">
+          This adds one night and moves the trip end date{nextEnd ? ` to ${formatLong(nextEnd)}` : ''}. The new night shows in Trip Details, where its meal plan still needs a look.
+        </p>
+      </Modal>
       <ConfirmDialog
         open={dayPending != null}
         title="Delete day"

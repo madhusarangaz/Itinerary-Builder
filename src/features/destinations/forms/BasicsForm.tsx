@@ -96,7 +96,7 @@ export function BasicsForm() {
                 }
                 className={`rounded-full px-3 py-1.5 text-sm ${
                   on
-                    ? 'bg-gray-900 text-white dark:bg-[#7A3714]'
+                    ? 'bg-[var(--accent)] text-white'
                     : 'border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-[#2C2A2A] dark:text-zinc-300'
                 }`}
               >

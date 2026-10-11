@@ -21,7 +21,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="pointer-events-none fixed top-4 right-4 z-[80] flex w-[min(320px,calc(100vw-2rem))] flex-col gap-2">
         {items.map((item) => (
-          <div key={item.id} className="pointer-events-auto flex items-start gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 shadow-lg dark:border-[#2C2A2A] dark:bg-[#1E1E20] dark:text-zinc-100">
+          <div key={item.id} className="pointer-events-auto flex items-start gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 shadow-lg dark:border-[#2C2A2A] dark:bg-[#0C0C0E] dark:text-zinc-100">
             <Check size={16} className="mt-0.5 shrink-0" />
             <p className="flex-1">{item.message}</p>
             <button type="button" className="text-gray-400" onClick={() => setItems((prev) => prev.filter((row) => row.id !== item.id))}>

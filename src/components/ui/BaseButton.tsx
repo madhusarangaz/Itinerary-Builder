@@ -22,9 +22,9 @@ export function BaseButton({
 
   const variantClasses = {
     primary:
-      'text-white bg-[linear-gradient(180deg,#2B2D33_0%,#111317_100%)] hover:bg-[#585858] dark:bg-[#7A3714] dark:hover:bg-orange-700 shadow-sm',
+      'btn-accent text-white shadow-sm',
     secondary:
-      'text-gray-800 bg-white border border-gray-200 hover:bg-gray-50 dark:bg-[#382C22] dark:border-[#382C22] dark:text-white dark:hover:bg-[#4E3D2F]',
+      'text-[var(--accent-text)] bg-white border border-gray-200 hover:bg-gray-50 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700',
     danger: 'text-white bg-red-600 hover:bg-red-700',
     ghost: 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10',
   }

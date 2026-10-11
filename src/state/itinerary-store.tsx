@@ -16,6 +16,7 @@ import { activityOpsFilled, travellerFilled } from '../lib/day-glance'
 import { uid } from '../lib/ids'
 import type {
   Accommodation,
+  StayChoice,
   Activity,
   ActivityType,
   Day,
@@ -111,7 +112,7 @@ type Ctx = {
   reorderActivities: (dayId: string, activities: Activity[]) => void
   addSubActivity: (dayId: string, activityId: string) => void
   updateAccommodation: (id: string, patch: Partial<Accommodation>) => void
-  setStayDestination: (id: string, destination: string, destinationId?: string, hotel?: Partial<Accommodation>) => void
+  setStayDestination: (id: string, destination: string, destinationId?: string, hotel?: Partial<Accommodation>, choice?: StayChoice) => void
   addAccommodation: () => void
   removeAccommodation: (id: string) => void
   addHotel: (hotel: Omit<Hotel, 'id'> & { id?: string }) => Hotel
@@ -311,7 +312,7 @@ export function ItineraryProvider({ children }: { children: ReactNode }) {
   )
 
   const setStayDestination = useCallback(
-    (id: string, destination: string, destinationId?: string, hotel?: Partial<Accommodation>) => {
+    (id: string, destination: string, destinationId?: string, hotel?: Partial<Accommodation>, choice?: StayChoice) => {
       const nightCount = alignedNightCount(trip.days.length, trip.startDate, trip.endDate)
       const linked = assignStayDays(trip.days.slice(0, nightCount), trip.accommodations)
       const stay = linked.find((item) => item.id === id)
@@ -319,13 +320,15 @@ export function ItineraryProvider({ children }: { children: ReactNode }) {
       const ids = new Set(stay.dayIds ?? [])
       const days = trip.days.map((day) => (ids.has(day.id) ? { ...day, destination, destinationId } : day))
       let accommodations = syncStays(days, linked, nightCount)
-      if (hotel) {
-        accommodations = accommodations.map((item) => {
-          const linkedIds = item.dayIds ?? []
-          const sameGroup = linkedIds.length === ids.size && linkedIds.every((dayId) => ids.has(dayId))
-          return sameGroup ? { ...item, ...hotel, destination, dayIds: item.dayIds } : item
-        })
-      }
+      accommodations = accommodations.map((item) => {
+        const linkedIds = item.dayIds ?? []
+        const sameGroup = linkedIds.length === ids.size && linkedIds.every((dayId) => ids.has(dayId))
+        if (!sameGroup) return item
+        const choices = choice
+          ? [...(item.choices ?? []).filter((row) => !(row.optionId === choice.optionId && row.dayId === choice.dayId)), choice]
+          : item.choices
+        return { ...item, ...(hotel ?? {}), destination, dayIds: item.dayIds, ...(choices ? { choices } : {}) }
+      })
       patch({ days, accommodations })
     },
     [patch, trip.accommodations, trip.days, trip.endDate, trip.startDate],

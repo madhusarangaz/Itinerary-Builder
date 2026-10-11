@@ -85,7 +85,7 @@ export function ImageUploader({
           )}
         >
           <ImageIcon className="h-6 w-6" />
-          <span className="text-sm font-medium text-gray-800 dark:text-gray-100">{label}</span>
+          <span className="text-sm font-medium text-[var(--accent-text)]">{label}</span>
           <span className="text-xs text-gray-400">Drag & drop or browse</span>
         </button>
       )}

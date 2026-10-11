@@ -12,8 +12,15 @@ import { useTransport } from '../../../state/transport-store'
 import { useToast } from '../../../components/ui/Toast'
 import { useCosting } from '../../../state/costing-store'
 import { useItinerary } from '../../../state/itinerary-store'
+import { useMissingAttention } from '../missing-attention'
 
-export function PricingForm() {
+export function PricingForm({
+  attentionToken = 0,
+  onAttentionHandled,
+}: {
+  attentionToken?: number
+  onAttentionHandled?: () => void
+}) {
   const { trip, patch } = useItinerary()
   const { costings, setActiveId, addCosting } = useCosting()
   const { activities } = useActivities()
@@ -21,6 +28,7 @@ export function PricingForm() {
   const { notify } = useToast()
   const navigate = useNavigate()
   const p = trip.pricing
+  const markMissing = useMissingAttention(attentionToken, onAttentionHandled)
   const [searchOpen, setSearchOpen] = useState(false)
   const [q, setQ] = useState('')
   const linked = costings.find((c) => c.id === trip.costingId)
@@ -177,9 +185,11 @@ export function PricingForm() {
         options={['USD', 'EUR', 'GBP', 'AUD', 'LKR'].map((c) => ({ value: c, label: c }))}
       />
       <InputField
+        id="pricing-total"
         label="Total tour cost"
         type="number"
         min={0}
+        attention={markMissing && p.total <= 0}
         value={p.total}
         onChange={(e) => patch({ pricing: { ...p, total: Number(e.target.value) } })}
       />

@@ -1,7 +1,7 @@
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { formatLong, formatRange } from '../../lib/dates'
 import { cn } from '../../lib/cn'
 import { buildJourneyStops } from '../../lib/journey-stops'
@@ -180,12 +180,89 @@ function HighlightsCarousel({ highlights }: { highlights: Highlight[] }) {
   )
 }
 
+function stayPhotos(stay: Accommodation) {
+  const list = (stay.images ?? []).filter(Boolean)
+  if (list.length) return list
+  return stay.image ? [stay.image] : []
+}
+
+function HotelMedia({ images, alt }: { images: string[]; alt: string }) {
+  const [index, setIndex] = useState(0)
+  const count = images.length
+  const safe = count ? index % count : 0
+
+  useEffect(() => {
+    if (count < 2) return
+    const timer = window.setInterval(() => setIndex((current) => (current + 1) % count), 4500)
+    return () => window.clearInterval(timer)
+  }, [count])
+
+  if (count < 2) {
+    return (
+      <div className="itinerary-hotel-media">
+        <SafeImg src={images[0] ?? ''} className="h-full w-full object-cover" alt={alt} />
+      </div>
+    )
+  }
+
+  function step(event: { stopPropagation: () => void; preventDefault: () => void }, delta: number) {
+    event.stopPropagation()
+    event.preventDefault()
+    setIndex((current) => (current + delta + count) % count)
+  }
+
+  return (
+    <div className="itinerary-hotel-media relative overflow-hidden">
+      <div
+        className="flex h-full transition-transform duration-500 ease-out"
+        style={{ width: `${count * 100}%`, transform: `translateX(-${(safe * 100) / count}%)` }}
+      >
+        {images.map((src, slide) => (
+          <div key={`${src}-${slide}`} className="h-full" style={{ width: `${100 / count}%` }}>
+            <SafeImg src={src} className="h-full w-full object-cover" alt={slide === safe ? alt : ''} />
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        aria-label="Previous hotel photo"
+        className="absolute top-1/2 left-2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-lg text-[#1c2a3a]"
+        onClick={(event) => step(event, -1)}
+      >
+        ‹
+      </button>
+      <button
+        type="button"
+        aria-label="Next hotel photo"
+        className="absolute top-1/2 right-2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-lg text-[#1c2a3a]"
+        onClick={(event) => step(event, 1)}
+      >
+        ›
+      </button>
+      <div className="absolute inset-x-0 bottom-2 z-10 flex justify-center gap-1.5">
+        {images.map((src, slide) => (
+          <button
+            key={`${src}-dot-${slide}`}
+            type="button"
+            aria-label={`Hotel photo ${slide + 1}`}
+            aria-current={slide === safe}
+            className={`h-1.5 w-1.5 rounded-full ${slide === safe ? 'bg-[#c4a574]' : 'bg-white/75'}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              event.preventDefault()
+              setIndex(slide)
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function HotelCard({ stay, onEdit }: { stay: Accommodation; onEdit?: (target: EditorTarget) => void }) {
   return (
     <article {...hotspot(onEdit, { section: 'stay' }, 'itinerary-hotel')}>
-      <div className="itinerary-hotel-media">
-        <SafeImg src={stay.image} className="h-full w-full object-cover" alt={stay.hotelName} />
-      </div>
+      <HotelMedia images={stayPhotos(stay)} alt={stay.hotelName} />
       <div className="itinerary-hotel-body">
         <p className="itinerary-kicker">{stay.destination}</p>
         <h4 className="itinerary-title mt-1 text-[1.35rem] leading-tight @min-[768px]:text-[1.55rem]">
@@ -259,7 +336,7 @@ export function ItineraryTemplate({
         <div className="absolute inset-0 bg-gradient-to-t from-[#1c2a3a] via-[#1c2a3a]/45 to-transparent" />
         <div className="itinerary-hero-inner relative z-10 flex flex-col">
           <Wrap className="flex items-center justify-between py-4">
-            <p className="itinerary-title text-[16px] tracking-tight text-white @min-[768px]:text-[18px]">Travel Building</p>
+            <p className="itinerary-title text-[16px] tracking-tight text-white @min-[768px]:text-[18px]">O'Viana Holidays</p>
             <p className="text-[10px] tracking-[0.22em] text-white/75 uppercase">{trip.tourId || 'Your journey'}</p>
           </Wrap>
           <Wrap className="hero-copy mt-auto pb-8 @min-[768px]:pb-12">
@@ -493,7 +570,7 @@ export function ItineraryTemplate({
       )}
 
       <footer {...hotspot(onEdit, { section: 'details', field: 'header' }, 'itinerary-footer')}>
-        <p className="itinerary-title itinerary-footer-mark">Travel Building</p>
+        <p className="itinerary-title itinerary-footer-mark">O'Viana Holidays</p>
         <p className="itinerary-kicker mt-4">Designed journeys · {trip.country || 'Sri Lanka'}</p>
       </footer>
     </div>

@@ -155,7 +155,7 @@ export function TransportPage() {
                       className={cn(
                         'rounded-full px-2 py-0.5 text-[10px]',
                         t.status === 'active'
-                          ? 'bg-gray-900 text-white dark:bg-[#7A3714]'
+                          ? 'bg-[#1c2a3a] text-white dark:bg-[#2C4A6E]'
                           : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-zinc-200',
                       )}
                     >
@@ -234,7 +234,7 @@ export function TransportPage() {
           >
             <motion.div
               variants={panel}
-              className="fixed top-8 right-5 bottom-0 left-2 z-50 flex flex-col overflow-hidden rounded-t-xl bg-white shadow-lg md:left-[15%] dark:bg-[#1E1E20]"
+              className="fixed top-8 right-5 bottom-0 left-2 z-50 flex flex-col overflow-hidden rounded-t-xl bg-white shadow-lg md:left-[15%] dark:bg-[#0C0C0E]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="min-h-0 flex-1">

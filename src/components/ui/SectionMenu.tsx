@@ -23,7 +23,7 @@ export function SectionMenu({
     <nav
       className={cn(
         vertical
-          ? 'flex h-full w-[220px] shrink-0 flex-col border-r border-gray-100 bg-white dark:border-[#2C2A2A] dark:bg-[#1E1E20]'
+          ? 'flex h-full w-[220px] shrink-0 flex-col border-r border-gray-100 bg-white dark:border-[#2C2A2A] dark:bg-[#0C0C0E]'
           : 'flex gap-1 overflow-x-auto border-b border-gray-100 px-4 py-2 dark:border-[#2C2A2A]',
       )}
     >
@@ -42,13 +42,13 @@ export function SectionMenu({
                 'flex items-center gap-2 rounded-lg text-left text-sm',
                 vertical ? 'px-2.5 py-2' : 'shrink-0 px-2.5 py-1.5 text-[11px]',
                 on
-                  ? 'bg-gray-900 text-white dark:bg-[#7A3714]'
-                  : 'text-gray-600 hover:bg-gray-50 dark:text-zinc-300 dark:hover:bg-white/5',
+                  ? 'bg-[#E7EFFF] text-[#14357A] dark:bg-white/10 dark:text-white'
+                  : 'text-gray-600 hover:bg-[#F3F7FF] dark:text-zinc-300 dark:hover:bg-white/5',
               )}
             >
-              <span className={cn('w-5 shrink-0 text-[11px] tabular-nums', on ? 'text-white/70' : 'text-gray-400')}>{item.n}</span>
+              <span className={cn('w-5 shrink-0 text-[11px] tabular-nums', on ? 'text-[#14357A]/70 dark:text-white/70' : 'text-gray-400')}>{item.n}</span>
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
-              <span className={cn('text-[11px]', on ? 'text-white/70' : 'text-gray-400')}>{glyph[item.status] ?? '○'}</span>
+              <span className={cn('text-[11px]', on ? 'text-[#14357A]/70 dark:text-white/70' : 'text-gray-400')}>{glyph[item.status] ?? '○'}</span>
             </button>
           )
         })}

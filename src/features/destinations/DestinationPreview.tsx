@@ -153,7 +153,7 @@ export function DestinationPreview({
             onClick={() => setMode('mobile')}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition',
-              mode === 'mobile' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-50',
+              mode === 'mobile' ? 'bg-[var(--accent)] text-white' : 'text-gray-600 hover:bg-gray-50',
             )}
           >
             <Smartphone size={14} />
@@ -164,7 +164,7 @@ export function DestinationPreview({
             onClick={() => setMode('desktop')}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition',
-              mode === 'desktop' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-50',
+              mode === 'desktop' ? 'bg-[var(--accent)] text-white' : 'text-gray-600 hover:bg-gray-50',
             )}
           >
             <Monitor size={14} />

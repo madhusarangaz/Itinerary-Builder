@@ -10,6 +10,9 @@ export type KnownPlace = {
   aliases: string[]
 }
 
+/** Shown on trip details as the usual arrival. */
+export const DEFAULT_START_POINT = 'Bandaranaike International Airport'
+
 /** Bandaranaike International (CMB) — typical Sri Lanka arrival. */
 export const AIRPORT: KnownPlace = {
   label: 'Colombo Airport',
@@ -89,6 +92,12 @@ function normalize(value: string) {
 const ALIAS_INDEX = PLACES.flatMap((place) =>
   place.aliases.map((alias) => ({ alias: normalize(alias), place })),
 ).sort((a, b) => b.alias.length - a.alias.length)
+
+/** Places a coordinator can pick as a trip start or end. */
+export function journeyPointOptions() {
+  const labels = PLACES.map((place) => (place.label === AIRPORT.label ? DEFAULT_START_POINT : place.label))
+  return [...new Set(labels)].map((label) => ({ value: label, label }))
+}
 
 export function isTerminalDestination(name: string) {
   const n = normalize(name)

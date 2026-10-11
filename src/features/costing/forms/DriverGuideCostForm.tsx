@@ -23,7 +23,7 @@ function ModeToggle({
           key={m}
           type="button"
           onClick={() => onChange(m)}
-          className={`flex-1 rounded-md px-3 py-1.5 ${value === m ? 'bg-gray-900 text-white dark:bg-[#7A3714]' : 'text-gray-500'}`}
+          className={`flex-1 rounded-md px-3 py-1.5 ${value === m ? 'bg-[var(--accent)] text-white' : 'text-gray-500'}`}
         >
           {m === 'daily' ? 'Daily calculation' : 'Manual total'}
         </button>

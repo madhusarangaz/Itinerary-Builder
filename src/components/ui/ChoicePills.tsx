@@ -54,7 +54,7 @@ export function MultiChips({
               className={cn(
                 'rounded-full px-3 py-1.5 text-sm transition',
                 on
-                  ? 'bg-gray-900 text-white dark:bg-[#7A3714]'
+                  ? 'bg-[var(--accent)] text-white'
                   : 'border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-[#2C2A2A] dark:text-zinc-300 dark:hover:bg-white/5',
               )}
             >
@@ -130,7 +130,7 @@ export function ChoicePills({
               className={cn(
                 'rounded-full px-3 py-1.5 text-sm transition',
                 on
-                  ? 'bg-gray-900 text-white dark:bg-[#7A3714]'
+                  ? 'bg-[var(--accent)] text-white'
                   : 'border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-[#2C2A2A] dark:text-zinc-300 dark:hover:bg-white/5',
               )}
             >
@@ -168,7 +168,7 @@ export function RadioCards({
               className={cn(
                 'rounded-xl border px-3 py-2.5 text-left transition',
                 on
-                  ? 'border-gray-900 bg-gray-900 text-white dark:border-[#7A3714] dark:bg-[#7A3714]'
+                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                   : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-[#2C2A2A] dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-white/5',
               )}
             >

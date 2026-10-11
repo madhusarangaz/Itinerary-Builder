@@ -140,7 +140,7 @@ export function syncStays(days: Day[], stays: Accommodation[], nightCount: numbe
       nights: group.length,
       dayIds: ids,
       ...(destinationChanged
-        ? { hotelId: '', hotelName: '', image: '', roomCategoryId: undefined, roomCategoryName: undefined }
+        ? { hotelId: '', hotelName: '', image: '', images: [], roomCategoryId: undefined, roomCategoryName: undefined }
         : {}),
     }
   })

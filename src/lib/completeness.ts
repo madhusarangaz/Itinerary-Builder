@@ -25,7 +25,7 @@ function dayName(dayNumber: number) {
 /** What is still open before this itinerary can be sent. Empty means ready. */
 export function sendGaps(trip: Trip): SendGap[] {
   const gaps: SendGap[] = []
-  if (!trip.title.trim()) gaps.push({ id: 'title', label: 'Add a trip name', section: 'details', anchor: 'form-header' })
+  if (!trip.title.trim()) gaps.push({ id: 'title', label: 'Add a trip name', section: 'details', anchor: 'form-cover' })
   if (!trip.customer.trim()) gaps.push({ id: 'customer', label: 'Add a traveller', section: 'details', anchor: 'form-header' })
   if (!trip.startDate || !trip.endDate) gaps.push({ id: 'dates', label: 'Set the travel dates', section: 'details', anchor: 'form-dates' })
   if (!trip.coverImage) gaps.push({ id: 'cover', label: 'Add a cover image', section: 'details', anchor: 'form-cover' })
@@ -153,3 +153,14 @@ export const SECTION_META: { id: SectionId; n: string; label: string }[] = [
   { id: 'terms', n: '05', label: 'Terms' },
   { id: 'expert', n: '06', label: 'Travel Expert' },
 ]
+
+/** The earliest section that still has to be finished before `id` can be edited. */
+export function blockingSection(trip: Trip, id: SectionId) {
+  const index = SECTION_META.findIndex((section) => section.id === id)
+  return SECTION_META.slice(0, index).find((section) => sectionStatus(trip, section.id) !== 'complete')
+}
+
+/** Trip Details is always open. Each later section opens only after the one before it is complete. */
+export function sectionUnlocked(trip: Trip, id: SectionId) {
+  return !blockingSection(trip, id)
+}

@@ -10,7 +10,7 @@ export function ShareItineraryPage() {
   const trip = shareId ? { ...stored, shareId: stored.shareId || shareId } : stored
 
   return (
-    <div className="relative min-h-screen bg-[#f2f2f2]">
+    <div className="relative min-h-screen bg-[#f2f2f2] tracking-normal">
       <ItineraryTemplate trip={trip} animate />
       <ItineraryChat trip={trip} placement="fixed" />
     </div>

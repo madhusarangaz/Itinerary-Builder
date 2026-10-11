@@ -88,7 +88,7 @@ export function AskAiButton({
       type="button"
       onClick={onClick}
       className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-800 shadow-sm transition hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-white/5',
+        'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-[var(--accent-text)] shadow-sm transition hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-white/5',
         className,
       )}
     >
@@ -149,7 +149,7 @@ export function DestinationAiChat({
 
   const node = open ? (
     <aside
-      className="dest-ai-drawer fixed inset-y-0 left-0 z-[55] flex w-[min(360px,calc(100vw-3rem))] flex-col border-r border-gray-200 bg-white shadow-[8px_0_32px_rgb(0_0_0_/_0.12)] dark:border-[#2C2A2A] dark:bg-[#1E1E20]"
+      className="dest-ai-drawer fixed inset-y-0 left-0 z-[55] flex w-[min(360px,calc(100vw-3rem))] flex-col border-r border-gray-200 bg-white shadow-[8px_0_32px_rgb(0_0_0_/_0.12)] dark:border-[#2C2A2A] dark:bg-[#0C0C0E]"
       aria-label="Ask AI"
     >
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-3.5 dark:border-[#2C2A2A]">
@@ -177,7 +177,7 @@ export function DestinationAiChat({
               className={cn(
                 'max-w-[90%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-[13px] leading-relaxed',
                 m.from === 'user'
-                  ? 'bg-gray-900 text-white dark:bg-[#7A3714]'
+                  ? 'bg-[#1c2a3a] text-white dark:bg-[#2C4A6E]'
                   : 'bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-zinc-100',
               )}
             >
@@ -223,7 +223,7 @@ export function DestinationAiChat({
           <button
             type="submit"
             disabled={busy || !draft.trim()}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[linear-gradient(180deg,#2B2D33_0%,#111317_100%)] text-white disabled:opacity-40 dark:bg-[#7A3714]"
+            className="btn-accent grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white disabled:opacity-40"
             aria-label="Send"
           >
             <Send size={14} />

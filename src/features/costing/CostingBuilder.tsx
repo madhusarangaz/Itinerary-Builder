@@ -107,7 +107,7 @@ export function CostingBuilder({
 
   return (
     <>
-      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-white dark:bg-[#1E1E20]">
+      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-white dark:bg-[#0C0C0E]">
         <BuilderHeader
           saveStatus={saveStatus}
           onClose={onClose}
@@ -159,7 +159,7 @@ export function CostingBuilder({
               <CostSummary />
             </aside>
             </div>
-            <div className="sticky right-0 bottom-0 left-0 z-[2] flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 bg-white px-6 pt-6 pb-10 dark:border-gray-800 dark:bg-[#1E1E20]">
+            <div className="sticky right-0 bottom-0 left-0 z-[2] flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 bg-white px-6 pt-6 pb-10 dark:border-gray-800 dark:bg-[#0C0C0E]">
               <div className="flex flex-wrap gap-2">
                 <BaseButton variant="secondary" onClick={() => patchActive({ status: 'draft' })}>
                   Save as draft

@@ -204,7 +204,7 @@ export function CostSummary() {
           </tbody>
         </table>
 
-        <div className="mt-4 rounded-xl bg-gray-900 px-4 py-4 text-white dark:bg-[#7A3714]">
+        <div className="mt-4 rounded-xl bg-[#1c2a3a] px-4 py-4 text-white dark:bg-[#2C4A6E]">
           <div className="flex items-end justify-between gap-3">
             <div>
               <p className="text-[10px] tracking-[0.2em] uppercase text-white/70">Final package</p>

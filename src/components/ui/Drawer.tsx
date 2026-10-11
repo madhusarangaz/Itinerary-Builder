@@ -34,7 +34,7 @@ export function Drawer({
             exit={{ x: 40, opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
-            className="absolute top-0 right-0 flex h-full w-full max-w-md flex-col border-l border-gray-100 bg-white shadow-2xl dark:border-[#2C2A2A] dark:bg-[#1E1E20]"
+            className="absolute top-0 right-0 flex h-full w-full max-w-md flex-col border-l border-gray-100 bg-white shadow-2xl dark:border-[#2C2A2A] dark:bg-[#0C0C0E]"
           >
             <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4 dark:border-[#2C2A2A]">
               <div>

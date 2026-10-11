@@ -214,7 +214,7 @@ export function MediaForm() {
                   coverImage: d.coverImage?.id === editing.id ? { ...d.coverImage, focalY } : d.coverImage,
                 })
               }}
-              className="mb-3 w-full"
+              className="mb-3 w-full accent-[var(--accent)]"
             />
             {editing.isCover ? (
               <p className="flex items-center gap-1 text-xs text-gray-500">

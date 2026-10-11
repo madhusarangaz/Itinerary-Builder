@@ -55,7 +55,7 @@ export function CostingPricingForm() {
           step={0.1}
           value={p.companyProfitPercent}
           onChange={(e) => patchActive({ pricing: { ...p, companyProfitPercent: Number(e.target.value) } })}
-          className="w-full accent-gray-900 dark:accent-[#7A3714]"
+          className="w-full accent-[var(--accent)]"
         />
         <p className="mt-1 text-xs text-gray-400">
           {p.companyProfitPercent}% = {formatMoney(t.companyProfitAmount, c.currency)}
@@ -79,7 +79,7 @@ export function CostingPricingForm() {
         onChange={(e) => patchActive({ pricing: { ...p, salesPersonProfitPercent: Number(e.target.value) || 0 } })}
       />
 
-      <div className="rounded-xl bg-gray-900 px-4 py-5 text-white dark:bg-[#7A3714]">
+      <div className="rounded-xl bg-[#1c2a3a] px-4 py-5 text-white dark:bg-[#2C4A6E]">
         <p className="text-[10px] tracking-[0.2em] uppercase text-white/70">Final package price</p>
         <p className="mt-1 text-3xl font-semibold">{formatMoney(t.finalPackageCost, c.currency)}</p>
         <p className="mt-3 text-[10px] tracking-[0.2em] uppercase text-white/70">Price per person</p>

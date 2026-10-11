@@ -1,4 +1,4 @@
-# Travel Building
+# O'Viana Holidays CRM
 
 Frontend prototype for a travel CRM itinerary module.
 

@@ -1,28 +1,15 @@
-import { AnimatePresence, motion } from 'framer-motion'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { AppShell } from '../../components/layout/AppShell'
 import { BaseButton } from '../../components/ui/BaseButton'
 import { cn } from '../../lib/cn'
-import { ItineraryBuilder } from '../itinerary/ItineraryBuilder'
-import { useItinerary } from '../../state/itinerary-store'
 import { formatShort } from '../../lib/dates'
-
-const slideUp = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.2, ease: 'easeOut' as const, when: 'beforeChildren' } },
-  exit: { opacity: 0, transition: { duration: 0.2, ease: 'easeIn' as const, when: 'afterChildren' } },
-}
-
-const panel = {
-  hidden: { opacity: 0, y: 100 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' as const } },
-  exit: { opacity: 0, y: 100, transition: { duration: 0.2, ease: 'easeIn' as const } },
-}
+import { useItinerary } from '../../state/itinerary-store'
+import { ItineraryBuilder } from '../itinerary/ItineraryBuilder'
 
 export function TripsPage() {
   const { trip } = useItinerary()
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const [aiOpen, setAiOpen] = useState(false)
 
   const rows = [
@@ -52,78 +39,70 @@ export function TripsPage() {
     },
   ]
 
-  return (
-    <AppShell>
-      <div className="flex h-full flex-col p-6">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-medium text-gray-900 dark:text-zinc-100">Itinerary</h1>
-            <p className="text-sm text-gray-500 dark:text-zinc-400">Itineraries for your travellers</p>
-          </div>
-          <BaseButton onClick={() => setOpen(true)}>
-            <Plus size={16} /> Create itinerary
-          </BaseButton>
-        </div>
-        <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-[#2C2A2A]">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-xs text-gray-500 dark:bg-white/5">
-              <tr>
-                <th className="px-4 py-3 font-medium">Tour</th>
-                <th className="px-4 py-3 font-medium">Traveller</th>
-                <th className="px-4 py-3 font-medium">Dates</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr
-                  key={r.id}
-                  className="cursor-pointer border-t border-gray-100 hover:bg-gray-50 dark:border-[#2C2A2A] dark:hover:bg-white/5"
-                  onClick={() => setOpen(true)}
-                >
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900 dark:text-zinc-100">{r.title}</div>
-                    <div className="text-xs text-gray-400">{r.tourId}</div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-zinc-300">{r.customer}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-zinc-400">{r.dates}</td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-white/10 dark:text-zinc-200">{r.status}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+  function closeBuilder() {
+    setOpen(false)
+    setAiOpen(false)
+  }
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            variants={slideUp}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="fixed inset-0 z-40 h-full bg-black/60 backdrop-blur-sm"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setOpen(false)
-            }}
-          >
-            <motion.div
-              variants={panel}
+  return (
+    <AppShell askAi={open ? { open: aiOpen, onToggle: () => setAiOpen((value) => !value) } : undefined}>
+      <div className="relative h-full overflow-hidden">
+        {open ? (
+            <div
               className={cn(
-                'fixed top-8 right-5 bottom-0 z-50 flex flex-col overflow-hidden rounded-t-xl bg-white shadow-lg transition-[left] duration-300 ease-out dark:bg-[#1E1E20]',
-                aiOpen ? 'left-2 md:left-[360px]' : 'left-2 md:left-[15%]',
+                'dash-in absolute top-8 right-8 bottom-8 left-8 transition-[left] duration-300 ease-out',
+                aiOpen && 'md:left-[4.5rem]',
               )}
-              onClick={(e) => e.stopPropagation()}
             >
-              <div className="min-h-0 flex-1">
-                <ItineraryBuilder onClose={() => { setOpen(false); setAiOpen(false) }} onAiOpenChange={setAiOpen} />
+              <ItineraryBuilder onClose={closeBuilder} aiOpen={aiOpen} onAiOpenChange={setAiOpen} />
+            </div>
+          ) : (
+            <div className="absolute inset-0 overflow-y-auto">
+              <div className="flex h-full flex-col p-6">
+                <div className="mb-6 flex items-center justify-between">
+                  <div>
+                    <h1 className="text-xl font-medium text-gray-900 dark:text-zinc-100">Itinerary</h1>
+                    <p className="text-sm text-gray-500 dark:text-zinc-400">Itineraries for your travellers</p>
+                  </div>
+                  <BaseButton onClick={() => setOpen(true)}>
+                    <Plus size={16} /> Create itinerary
+                  </BaseButton>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-[#2C2A2A]">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-gray-50 text-xs text-gray-500 dark:bg-white/5">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Tour</th>
+                        <th className="px-4 py-3 font-medium">Traveller</th>
+                        <th className="px-4 py-3 font-medium">Dates</th>
+                        <th className="px-4 py-3 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr
+                          key={r.id}
+                          className="cursor-pointer border-t border-gray-100 hover:bg-gray-50 dark:border-[#2C2A2A] dark:hover:bg-white/5"
+                          onClick={() => setOpen(true)}
+                        >
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-900 dark:text-zinc-100">{r.title}</div>
+                            <div className="text-xs text-gray-400">{r.tourId}</div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-700 dark:text-zinc-300">{r.customer}</td>
+                          <td className="px-4 py-3 text-gray-600 dark:text-zinc-400">{r.dates}</td>
+                          <td className="px-4 py-3">
+                            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-white/10 dark:text-zinc-200">{r.status}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          )}
+      </div>
     </AppShell>
   )
 }

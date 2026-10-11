@@ -88,7 +88,7 @@ export function HotelsPage() {
                   <td className="px-4 py-3 text-gray-700 dark:text-zinc-300">{starLabel(hotel.starCategory as StarCategory | undefined)}</td>
                   <td className="px-4 py-3 text-gray-700 dark:text-zinc-300">{hotel.rooms.filter((r) => r.name.trim()).length}</td>
                   <td className="px-4 py-3">
-                    <span className={cn('rounded-full px-2 py-0.5 text-[10px]', hotel.status === 'active' ? 'bg-gray-900 text-white dark:bg-[#7A3714]' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-zinc-200')}>
+                    <span className={cn('rounded-full px-2 py-0.5 text-[10px]', hotel.status === 'active' ? 'bg-[#1c2a3a] text-white dark:bg-[#2C4A6E]' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-zinc-200')}>
                       {HOTEL_STATUS_LABELS[hotel.status]}
                     </span>
                   </td>
@@ -111,7 +111,7 @@ export function HotelsPage() {
       <AnimatePresence>
         {open && (
           <motion.div variants={slideUp} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 z-40 h-full bg-black/60 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}>
-            <motion.div variants={panel} className="fixed top-8 right-5 bottom-0 left-2 z-50 flex flex-col overflow-hidden rounded-t-xl bg-white shadow-lg md:left-[15%] dark:bg-[#1E1E20]" onClick={(e) => e.stopPropagation()}>
+            <motion.div variants={panel} className="fixed top-8 right-5 bottom-0 left-2 z-50 flex flex-col overflow-hidden rounded-t-xl bg-white shadow-lg md:left-[15%] dark:bg-[#0C0C0E]" onClick={(e) => e.stopPropagation()}>
               <div className="min-h-0 flex-1">
                 <HotelBuilder onClose={() => setOpen(false)} />
               </div>

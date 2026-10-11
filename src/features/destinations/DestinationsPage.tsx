@@ -117,7 +117,7 @@ export function DestinationsPage() {
           {rows.map((d) => (
             <article
               key={d.id}
-              className="cursor-pointer overflow-hidden rounded-xl border border-gray-100 bg-white transition hover:bg-gray-50 dark:border-[#2C2A2A] dark:bg-[#242528] dark:hover:bg-white/5"
+              className="cursor-pointer overflow-hidden rounded-xl border border-gray-100 bg-white transition hover:bg-gray-50 dark:border-[#2C2A2A] dark:bg-[#101012] dark:hover:bg-white/5"
               onClick={() => openDest(d.id)}
             >
               <div className="flex gap-3 p-3">
@@ -140,7 +140,7 @@ export function DestinationsPage() {
                       className={cn(
                         'rounded-full px-2 py-0.5 text-[10px]',
                         d.status === 'active'
-                          ? 'bg-gray-900 text-white dark:bg-[#7A3714]'
+                          ? 'bg-[#1c2a3a] text-white dark:bg-[#2C4A6E]'
                           : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-zinc-200',
                       )}
                     >
@@ -230,7 +230,7 @@ export function DestinationsPage() {
               )}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-xl bg-white shadow-lg dark:bg-[#1E1E20]">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-xl bg-white shadow-lg dark:bg-[#0C0C0E]">
                 <div className="min-h-0 flex-1">
                   <DestinationBuilder onClose={closeBuilder} aiOpen={aiOpen} onAiOpenChange={setAiOpen} />
                 </div>

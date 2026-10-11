@@ -26,7 +26,7 @@ export function RatesForm() {
           className={cn(
             'rounded-xl border px-3 py-3 text-left transition',
             c.perDayEnabled
-              ? 'border-gray-900 bg-gray-900 text-white dark:border-[#7A3714] dark:bg-[#7A3714]'
+              ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
               : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-[#2C2A2A] dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-white/5',
           )}
         >
@@ -41,7 +41,7 @@ export function RatesForm() {
           className={cn(
             'rounded-xl border px-3 py-3 text-left transition',
             c.perKmEnabled
-              ? 'border-gray-900 bg-gray-900 text-white dark:border-[#7A3714] dark:bg-[#7A3714]'
+              ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
               : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-[#2C2A2A] dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-white/5',
           )}
         >
@@ -82,7 +82,7 @@ export function RatesForm() {
                       dailyRateInclusions: { ...c.dailyRateInclusions, [key]: e.target.checked },
                     })
                   }
-                  className="h-4 w-4 rounded border-gray-300 text-gray-900 dark:border-zinc-600"
+                  className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)] dark:border-zinc-600"
                 />
                 {label}
               </label>

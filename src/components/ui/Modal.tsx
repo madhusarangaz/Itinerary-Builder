@@ -31,7 +31,7 @@ export function Modal({ open, title, subtitle, onClose, children, footer, size =
             exit={{ opacity: 0, y: 24 }}
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
-            className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-[#333336] dark:bg-[#1E1E20] ${size === 'sm' ? 'max-w-sm' : 'max-w-xl'}`}
+            className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-[#333336] dark:bg-[#0C0C0E] ${size === 'sm' ? 'max-w-sm' : 'max-w-xl'}`}
           >
             <div className="flex items-start justify-between border-b border-gray-100 px-6 pt-5 pb-4 dark:border-[#2C2A2A]">
               <div>

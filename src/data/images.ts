@@ -16,6 +16,8 @@ export const photos = {
   safari: wiki('Sri_Lankan_elephant.jpg', 1400),
   pool: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1400&q=80',
   expert: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80',
+  expertNaveen: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=800&q=80',
+  expertAmaya: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=800&q=80',
   hotelColombo: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80',
   hotelSigiriya: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1600&q=80',
   hotelKandy: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1600&q=80',
@@ -27,3 +29,10 @@ export const photos = {
 
 /** Short cinematic Sri Lanka film used as the sample header background (muted autoplay). Swap via Trip Details. */
 export const sampleHeroVideo = 'https://www.youtube.com/watch?v=q0rMXhbEeX0'
+
+/** Library tiles shown in the trip header picker until interest matching is wired up. */
+export const headerImages = [
+  { src: photos.cover, alt: 'Colombo' },
+  { src: photos.sigiriya, alt: 'Sigiriya' },
+  { src: photos.beach, alt: 'Mirissa beach' },
+]

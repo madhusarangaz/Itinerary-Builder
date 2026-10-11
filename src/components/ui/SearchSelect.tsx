@@ -18,6 +18,7 @@ export function SearchSelect({
   onChange,
   className,
   allowCreate,
+  attention = false,
 }: {
   label?: string
   optional?: boolean
@@ -27,6 +28,7 @@ export function SearchSelect({
   onChange: (value: string) => void
   className?: string
   allowCreate?: boolean
+  attention?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
@@ -60,6 +62,7 @@ export function SearchSelect({
         label={label}
         optional={optional}
         placeholder={placeholder}
+        attention={attention}
         startIcon={<Search size={16} />}
         value={open ? q : display}
         onFocus={() => {

@@ -44,11 +44,15 @@ export type Activity = {
   type: ActivityType
   title: string
   description: string
+  /** Picture chosen for this day item. */
+  image?: string
   subActivities: SubActivity[]
   sortOrder: number
   time?: string
   status?: ActivityStatus | ''
   activityId?: string
+  /** A highlight dropped onto the day, rather than an activity. */
+  kind?: 'highlight'
   /** Trip-only wording. Does not write back to the activity master. */
   customDescription?: string
   notes?: string
@@ -90,6 +94,8 @@ export type Day = {
   travel?: DayTravel
   hotelName?: string
   meals?: DayMeals
+  /** Board for this night: BB, HB, or FB. Falls back to the stay when unset. */
+  mealPlan?: string
   tip?: string
   pickup?: DayPickup
 }
@@ -104,6 +110,24 @@ export type Hotel = {
   notes: string
 }
 
+/** Option 1 uses each stay's own hotel fields. Further options store a StayChoice. */
+export const primaryStayOption = 'stay-option-1'
+
+export type StayChoice = {
+  optionId: string
+  /** Night this hotel belongs to. Option 1 uses the stay's own hotel instead. */
+  dayId: string
+  hotelId: string
+  hotelName: string
+  roomCategoryId?: string
+  roomCategoryName?: string
+  starCategory: number
+  mealPlan: string
+  image: string
+  /** Selected hotel photos, in carousel order. `image` stays the first one. */
+  images?: string[]
+}
+
 export type Accommodation = {
   id: string
   destination: string
@@ -115,8 +139,14 @@ export type Accommodation = {
   starCategory: number
   mealPlan: string
   image: string
+  /** Selected hotel photos, in carousel order. `image` stays the first one. */
+  images?: string[]
   /** Overnight days that share this stay, in journey order. */
   dayIds?: string[]
+  /** Extra hotels for one night. Option 1 is this stay's own hotel. */
+  nightOptions?: { dayId: string; optionIds: string[] }[]
+  /** Hotels for options after Option 1, one night at a time. */
+  choices?: StayChoice[]
 }
 
 export type Pricing = {
@@ -151,8 +181,15 @@ export type Trip = {
   country: string
   startDate: string
   endDate: string
+  /** Where the journey begins. Defaults to Bandaranaike International Airport. */
+  startPoint: string
+  /** Where the journey ends. Chosen on trip details. */
+  endPoint: string
+  /** Traveller interests, including any added beyond the preset list. */
+  interests: string[]
   adults: number
   children: number
+  infants: number
   nights: number
   coverImage: string
   coverPosition: number

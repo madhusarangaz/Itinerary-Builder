@@ -51,7 +51,7 @@ export function LivePreview({
             onClick={() => setMode('mobile')}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition',
-              mode === 'mobile' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-50',
+              mode === 'mobile' ? 'bg-[var(--accent)] text-white' : 'text-gray-600 hover:bg-gray-50',
             )}
           >
             <Smartphone size={14} />
@@ -62,7 +62,7 @@ export function LivePreview({
             onClick={() => setMode('desktop')}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition',
-              mode === 'desktop' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-50',
+              mode === 'desktop' ? 'bg-[var(--accent)] text-white' : 'text-gray-600 hover:bg-gray-50',
             )}
           >
             <Monitor size={14} />
@@ -76,7 +76,7 @@ export function LivePreview({
               e.stopPropagation()
               void copy()
             }}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-[var(--accent-text)] shadow-sm hover:bg-gray-50"
           >
             {copied ? <Check size={14} /> : <Link2 size={14} />}
             {copied ? 'Copied' : 'Copy link'}
@@ -87,7 +87,7 @@ export function LivePreview({
             rel="noopener noreferrer"
             onClick={openLive}
             onMouseDown={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#111317] px-3 py-1.5 text-sm font-medium text-white"
+            className="btn-accent inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white"
           >
             <ExternalLink size={14} />
             Open

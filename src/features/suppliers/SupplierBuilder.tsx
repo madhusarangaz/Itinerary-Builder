@@ -32,7 +32,7 @@ export function SupplierBuilder({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-white dark:bg-[#1E1E20]">
+      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-white dark:bg-[#0C0C0E]">
         <BuilderHeader
           saveStatus={saveStatus}
           onClose={onClose}

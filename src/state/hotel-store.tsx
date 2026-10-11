@@ -29,12 +29,19 @@ type Ctx = {
 
 const HotelContext = createContext<Ctx | null>(null)
 
+function withSampleHotels(saved: HotelRecord[]) {
+  const ids = new Set(saved.map((hotel) => hotel.id))
+  const names = new Set(saved.map((hotel) => hotel.name.trim().toLowerCase()))
+  const missing = sampleHotels.filter((hotel) => !ids.has(hotel.id) && !names.has(hotel.name.trim().toLowerCase()))
+  return missing.length ? [...saved, ...missing] : saved
+}
+
 function loadAll(): HotelRecord[] {
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as HotelRecord[]
-      if (Array.isArray(parsed) && parsed.length) return parsed
+      if (Array.isArray(parsed) && parsed.length) return withSampleHotels(parsed)
     }
   } catch {
     /* ignore */
